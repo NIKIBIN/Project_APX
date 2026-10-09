@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f11af016e0af9724c93d71709e2f9631, type: 3}
+  m_Name: PlayerMovementConfig
+  m_EditorClassIdentifier: APX.Runtime::APX.Player.PlayerMovementConfig
+  maxRunSpeed: 8
+  groundAcceleration: 90
+  groundDeceleration: 110
+  airAcceleration: 65
+  airDeceleration: 45
+  inputDeadZone: 0.2
+  jumpHeight: 3.6
+  timeToApex: 0.38
+  coyoteTime: 0.1
+  jumpBufferTime: 0.12
+  fallGravityMultiplier: 1.9
+  jumpCutGravityMultiplier: 3
+  maxFallSpeed: 22
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 256
+  groundProbeDepth: 0.1
+  groundProbeWidth: 0.9

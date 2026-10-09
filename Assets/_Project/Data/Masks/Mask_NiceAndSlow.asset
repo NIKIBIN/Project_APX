@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c837416bf76fff44eb2f9dd7807a181c, type: 3}
+  m_Name: Mask_NiceAndSlow
+  m_EditorClassIdentifier: APX.Runtime::APX.Masks.MaskDefinition
+  type: 1
+  displayName: Devagar devagarinho
+  description: "Anula o mundo acelerado: inimigos e obst\xE1culos ficam lentos, voc\xEA n\xE3o."
+  color: {r: 0.4, g: 0.85, b: 0.55, a: 1}
+  icon: {fileID: 0}

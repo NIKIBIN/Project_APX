@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:apx="APX.UI" editor-extension-mode="False">
+    <ui:Style src="RadialMenu.uss" />
+    <ui:VisualElement name="radialOverlay" class="radial-overlay radial-overlay--hidden" picking-mode="Ignore">
+        <ui:VisualElement name="radialMenu" class="radial-menu" picking-mode="Ignore">
+            <apx:RadialRing name="radialRing" class="radial-ring" thickness="110" gap-degrees="6" />
+            <ui:Label name="slotUp" class="radial-slot" picking-mode="Ignore" />
+            <ui:Label name="slotRight" class="radial-slot" picking-mode="Ignore" />
+            <ui:Label name="slotDown" class="radial-slot" picking-mode="Ignore" />
+            <ui:Label name="slotLeft" class="radial-slot" picking-mode="Ignore" />
+            <ui:VisualElement name="radialCenter" class="radial-center" picking-mode="Ignore">
+                <ui:Label name="radialTitle" class="radial-center__title" picking-mode="Ignore" />
+                <ui:Label name="radialDescription" class="radial-center__description" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="radialCursor" class="radial-cursor" picking-mode="Ignore" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,83 @@
+.hud-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.mask-hud {
+    position: absolute;
+    left: 24px;
+    top: 20px;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background-color: rgba(8, 10, 22, 0.65);
+}
+
+.mask-hud__chip {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    border-radius: 8px;
+    background-color: rgb(140, 148, 168);
+}
+
+.mask-hud__label {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+}
+
+.controls-hint {
+    position: absolute;
+    left: 24px;
+    bottom: 16px;
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.hint-bubble {
+    position: absolute;
+    max-width: 380px;
+    translate: -50% -100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border-width: 3px;
+    border-color: rgb(34, 36, 54);
+    background-color: rgb(250, 246, 232);
+}
+
+.hint-bubble--hidden {
+    display: none;
+}
+
+.hint-bubble__text {
+    font-size: 19px;
+    white-space: normal;
+    color: rgb(30, 30, 42);
+}
+
+.hint-bubble__tail {
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    rotate: 45deg;
+    border-right-width: 3px;
+    border-bottom-width: 3px;
+    border-color: rgb(34, 36, 54);
+    background-color: rgb(250, 246, 232);
+}
+
+.iris {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}

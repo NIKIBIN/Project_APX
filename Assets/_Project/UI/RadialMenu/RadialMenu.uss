@@ -1,0 +1,88 @@
+.radial-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(6, 8, 18, 0.55);
+}
+
+.radial-overlay--hidden {
+    display: none;
+}
+
+.radial-menu {
+    width: 560px;
+    height: 560px;
+}
+
+.radial-ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.radial-slot {
+    position: absolute;
+    width: 150px;
+    translate: -50% -50%;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    font-size: 19px;
+    -unity-font-style: bold;
+    color: rgba(255, 255, 255, 0.8);
+    transition-duration: 0.08s;
+}
+
+.radial-slot--hovered {
+    color: rgb(255, 255, 255);
+    scale: 1.12 1.12;
+}
+
+.radial-slot--equipped {
+    -unity-font-style: bold-and-italic;
+}
+
+.radial-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 220px;
+    margin-top: 16px;
+    translate: -50% 0;
+    align-items: center;
+}
+
+.radial-center__title {
+    font-size: 21px;
+    -unity-font-style: bold;
+    color: rgb(255, 255, 255);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.radial-center__description {
+    margin-top: 4px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.78);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.radial-cursor {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    margin-left: -10px;
+    margin-top: -10px;
+    border-radius: 10px;
+    border-width: 3px;
+    border-color: rgb(20, 22, 35);
+    background-color: rgb(255, 255, 255);
+}

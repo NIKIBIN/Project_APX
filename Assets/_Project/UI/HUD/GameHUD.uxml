@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:apx="APX.UI" editor-extension-mode="False">
+    <Style src="project://database/Assets/_Project/UI/HUD/GameHUD.uss?fileID=7433441132597879392&amp;guid=a27fe71367ff12243ae4727b6b90de6f&amp;type=3#GameHUD"/>
+    <ui:VisualElement name="hudRoot" picking-mode="Ignore" class="hud-root">
+        <ui:VisualElement name="maskHud" picking-mode="Ignore" class="mask-hud">
+            <ui:VisualElement name="maskHudChip" picking-mode="Ignore" class="mask-hud__chip"/>
+            <ui:Label name="maskHudLabel" text="Sem máscara" picking-mode="Ignore" class="mask-hud__label"/>
+        </ui:VisualElement>
+        <ui:Label name="controlsHint" text="Setas/WASD: mover  ·  Espaço/Z: pular  ·  X/J/Clique: atacar  ·  Segure Tab: máscaras" picking-mode="Ignore" enabled="true" class="controls-hint" style="opacity: 0;"/>
+        <ui:VisualElement name="hintBubble" picking-mode="Ignore" class="hint-bubble hint-bubble--hidden">
+            <ui:Label name="hintText" picking-mode="Ignore" class="hint-bubble__text"/>
+            <ui:VisualElement name="hintTail" picking-mode="Ignore" class="hint-bubble__tail"/>
+        </ui:VisualElement>
+        <apx:IrisMask name="iris" class="iris"/>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,111 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &4830916246880144237
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3768410854134722754, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_Color.b
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 3768410854134722754, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_Color.g
+      value: 0.76
+      objectReference: {fileID: 0}
+    - target: {fileID: 3768410854134722754, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_Color.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4387232738692197679, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9046847383204053003, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      propertyPath: m_Name
+      value: HitSwitch_Hidden
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9046847383204053003, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5281957119971023079}
+    - targetCorrespondingSourceObject: {fileID: 9046847383204053003, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 664363100043553070}
+  m_SourcePrefab: {fileID: 100100000, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+--- !u!1 &4505296691221007206 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9046847383204053003, guid: 8a2d259b511dddf42baa96aade727488, type: 3}
+  m_PrefabInstance: {fileID: 4830916246880144237}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5281957119971023079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4505296691221007206}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f1626455688e2d48936a9ea69f94d53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Masks.MaskVisibilityResponder
+  mask: 3
+  invert: 0
+  hiddenAlpha: 0
+--- !u!114 &664363100043553070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4505296691221007206}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1970a9803ccdc254c938a2973115a76b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Masks.MaskCollisionResponder
+  mask: 3
+  invert: 0
