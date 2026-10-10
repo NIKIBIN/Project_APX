@@ -15,5 +15,8 @@ namespace APX.Rooms
 
         /// <summary>Reveals the screen again after the room was reset.</summary>
         IEnumerator Open(Func<Vector2> worldFocus);
+
+        /// <summary>Covers the screen at once, e.g. so a scene can open with <see cref="Open"/>.</summary>
+        void Cover();
     }
 }

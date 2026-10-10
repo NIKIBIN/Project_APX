@@ -1,5 +1,6 @@
 using System;
 using APX.Core;
+using APX.Feel;
 using APX.Masks;
 using APX.Player;
 using APX.Rooms;
@@ -11,12 +12,16 @@ namespace APX.Hints
     /// <summary>
     /// Helper that appears only when the player picks "no mask" in the radial menu, flies next to the
     /// player and exposes the current room's hint (read from the room's <see cref="IHintProvider"/>).
+    /// Cutscenes can take it over with <see cref="BeginScripted"/>: it shows up and stays wherever it is
+    /// moved, without following anyone or offering hints, until <see cref="EndScripted"/> or a summon.
     /// </summary>
     public sealed class HintCompanion : MonoBehaviour
     {
         [SerializeField] Transform followTarget;
         [Tooltip("Child holding the visuals; toggled on summon/dismiss while this component keeps listening.")]
         [SerializeField] GameObject visualRoot;
+        [Tooltip("Optional reaction bubble over the companion's head, used by cutscenes.")]
+        [SerializeField] EmotePopup emote;
         [Tooltip("Offset from the target when it faces right (mirrored when it faces left, so the companion trails behind).")]
         [SerializeField] Vector2 followOffset = new(-1.1f, 1.5f);
         [SerializeField, Min(0.01f)] float followSmoothTime = 0.18f;
@@ -24,6 +29,8 @@ namespace APX.Hints
         [SerializeField, Min(0f)] float bobFrequency = 1.2f;
         [Tooltip("Seconds to pop in (scale up with a little overshoot) when summoned. 0 = appear instantly.")]
         [SerializeField, Min(0f)] float appearDuration = 0.35f;
+        [Tooltip("How close to its place beside the player the companion must be to count as settled (see IsSettled).")]
+        [SerializeField, Min(0.01f)] float settleDistance = 0.4f;
         [SerializeField, TextArea(2, 4)] string fallbackHint = "Hmm... não tenho nenhuma dica para esta sala.";
 
         IFacingProvider _facing;
@@ -32,8 +39,17 @@ namespace APX.Hints
         Vector3 _visualRestScale;
         Tween _visualTween;
         float _bobTime;
+        bool _isAppearing;
 
         public bool IsSummoned { get; private set; }
+
+        /// <summary>Summoned, fully popped in and at its place beside the player (e.g. ready to show its hint).</summary>
+        public bool IsSettled =>
+            IsSummoned && !IsScripted && !_isAppearing && followTarget != null &&
+            ((Vector2)(transform.position - GetFollowPosition())).sqrMagnitude <= settleDistance * settleDistance;
+
+        /// <summary>A cutscene is moving the companion (see <see cref="BeginScripted"/>).</summary>
+        public bool IsScripted { get; private set; }
 
         public string CurrentHint { get; private set; } = string.Empty;
 
@@ -78,17 +94,83 @@ namespace APX.Hints
 
         void LateUpdate()
         {
+            if (IsScripted)
+            {
+                Bob();
+                return;
+            }
+
             if (!IsSummoned || followTarget == null)
                 return;
 
             transform.position = Vector3.SmoothDamp(transform.position, GetFollowPosition(), ref _velocity, followSmoothTime);
+            Bob();
+        }
 
+        /// <summary>
+        /// Cutscene control: shows the companion at <paramref name="position"/> at once and stops it following the
+        /// player; move its transform freely until <see cref="EndScripted"/>, or until a summon, which makes it glide
+        /// from wherever it is to its place beside the player.
+        /// </summary>
+        public void BeginScripted(Vector3 position)
+        {
+            IsScripted = true;
+            _visualTween?.Kill();
+            transform.position = position;
+            _velocity = Vector3.zero;
             if (visualRoot != null)
             {
-                _bobTime += Time.deltaTime;
-                float bob = Mathf.Sin(_bobTime * bobFrequency * 2f * Mathf.PI) * bobAmplitude;
-                visualRoot.transform.localPosition = _visualRestPosition + Vector3.up * bob;
+                visualRoot.SetActive(true);
+                visualRoot.transform.localScale = _visualRestScale;
             }
+        }
+
+        /// <summary>Ends cutscene control: back to following the player when summoned, otherwise hidden.</summary>
+        public void EndScripted()
+        {
+            if (!IsScripted)
+                return;
+
+            IsScripted = false;
+            _velocity = Vector3.zero;
+            SetFacing(1);
+            if (emote != null)
+                emote.Hide();
+            if (!IsSummoned && visualRoot != null)
+                visualRoot.SetActive(false);
+        }
+
+        /// <summary>Turns the companion to look right (1) or left (-1).</summary>
+        public void SetFacing(int direction)
+        {
+            if (visualRoot == null)
+                return;
+
+            Vector3 scale = _visualRestScale;
+            scale.x = Mathf.Abs(scale.x) * (direction < 0 ? -1f : 1f);
+            visualRoot.transform.localScale = scale;
+        }
+
+        public void ShowEmote(Emote reaction)
+        {
+            if (emote != null)
+                emote.Show(reaction);
+        }
+
+        public void HideEmote()
+        {
+            if (emote != null)
+                emote.Hide();
+        }
+
+        void Bob()
+        {
+            if (visualRoot == null)
+                return;
+
+            _bobTime += Time.deltaTime;
+            float bob = Mathf.Sin(_bobTime * bobFrequency * 2f * Mathf.PI) * bobAmplitude;
+            visualRoot.transform.localPosition = _visualRestPosition + Vector3.up * bob;
         }
 
         /// <summary>
@@ -136,7 +218,17 @@ namespace APX.Hints
                 return;
 
             IsSummoned = summoned;
-            if (visualRoot != null)
+
+            // Already on screen in a cutscene: no pop-in or jump, it just glides over to the player.
+            bool wasScripted = IsScripted;
+            if (wasScripted)
+            {
+                IsScripted = false;
+                _velocity = Vector3.zero;
+                HideEmote();
+            }
+
+            if (visualRoot != null && !(summoned && wasScripted))
             {
                 visualRoot.SetActive(summoned);
                 PlayAppear(summoned);
@@ -144,7 +236,8 @@ namespace APX.Hints
 
             if (summoned)
             {
-                SnapToTarget();
+                if (!wasScripted)
+                    SnapToTarget();
                 RefreshHint(RoomManager.CurrentRoom);
             }
 
@@ -162,7 +255,11 @@ namespace APX.Hints
             }
 
             visual.localScale = Vector3.zero;
-            _visualTween = visual.DOScale(_visualRestScale, appearDuration).SetEase(Ease.OutBack).SetLink(gameObject);
+            _isAppearing = true;
+            _visualTween = visual.DOScale(_visualRestScale, appearDuration)
+                .SetEase(Ease.OutBack)
+                .OnKill(() => _isAppearing = false)
+                .SetLink(gameObject);
         }
 
         void RefreshHint(Room room)

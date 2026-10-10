@@ -376,6 +376,7 @@ GameObject:
   - component: {fileID: 7722374174522211596}
   - component: {fileID: 7757532629861635387}
   - component: {fileID: 5796109736315494276}
+  - component: {fileID: 9171992579412106422}
   m_Layer: 0
   m_Name: Room_Template
   m_TagString: Untagged
@@ -429,6 +430,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: APX.Runtime::APX.Hints.RoomHint
   hint: 
+--- !u!114 &9171992579412106422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1589025492335615515}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba2a37a6faea61a4893ca1d61eb850cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Level.SpikeTrapGroup
+  firstStrikeDelay: 2
+  pauseBetweenStrikes: {x: 2, y: 4}
+  calmDownTime: 3
+  popDuration: 0.05
+  upDuration: 0.4
+  retractDuration: 0.25
+  contactTolerance: 0.15
+  feetWidth: 0.5
 --- !u!1 &1826193826406223480
 GameObject:
   m_ObjectHideFlags: 0

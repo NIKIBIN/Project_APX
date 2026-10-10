@@ -23,6 +23,7 @@ namespace APX.Feel
         [SerializeField] ParticleBurst deathBurst;
         [SerializeField] ParticleBurst doorDust;
         [SerializeField] ParticleBurst magic;
+        [SerializeField] CeilingDebris ceilingDebris;
 
         [Header("Player Movement")]
         [SerializeField, Min(0)] int jumpDust = 6;
@@ -60,10 +61,23 @@ namespace APX.Feel
         [SerializeField, Range(0f, 1f)] float rumbleTrauma = 0.08f;
         [SerializeField, Range(0f, 1f)] float slamTrauma = 0.35f;
 
+        [Header("Room Rumble")]
+        [Tooltip("Steady shake while the room rumbles (debris falls from the ceiling meanwhile).")]
+        [SerializeField, Range(0f, 1f)] float roomRumbleTrauma = 0.45f;
+        [Tooltip("Seconds for the rumble to build up to full strength. It fades out on its own when it stops.")]
+        [SerializeField, Min(0f)] float roomRumbleRampUp = 0.4f;
+
+        [Header("Spike Traps")]
+        [SerializeField, Min(0)] int spikeDust = 6;
+        [SerializeField, Range(0f, 1f)] float spikeTrauma = 0.06f;
+
         [Header("Masks")]
         [Tooltip("Magical sparkles when a mask appears, swaps or comes off: half tinted with the mask colour, half white.")]
         [SerializeField, Min(0)] int maskBurstParticles = 24;
         [SerializeField, Range(0f, 1f)] float maskBurstTrauma = 0.08f;
+
+        bool _isRumbling;
+        float _rumbleTime;
 
         void Awake()
         {
@@ -84,6 +98,9 @@ namespace APX.Feel
             EventBus<EnemyDiedEvent>.Subscribe(OnEnemyDied);
             EventBus<DoorRumbledEvent>.Subscribe(OnDoorRumbled);
             EventBus<DoorSlammedEvent>.Subscribe(OnDoorSlammed);
+            EventBus<SpikeTrapPoppedEvent>.Subscribe(OnSpikeTrapPopped);
+            EventBus<RumbleStartedEvent>.Subscribe(OnRumbleStarted);
+            EventBus<RumbleStoppedEvent>.Subscribe(OnRumbleStopped);
             EventBus<MaskBurstEvent>.Subscribe(OnMaskBurst);
         }
 
@@ -97,7 +114,21 @@ namespace APX.Feel
             EventBus<EnemyDiedEvent>.Unsubscribe(OnEnemyDied);
             EventBus<DoorRumbledEvent>.Unsubscribe(OnDoorRumbled);
             EventBus<DoorSlammedEvent>.Unsubscribe(OnDoorSlammed);
+            EventBus<SpikeTrapPoppedEvent>.Unsubscribe(OnSpikeTrapPopped);
             EventBus<MaskBurstEvent>.Unsubscribe(OnMaskBurst);
+            EventBus<RumbleStartedEvent>.Unsubscribe(OnRumbleStarted);
+            EventBus<RumbleStoppedEvent>.Unsubscribe(OnRumbleStopped);
+            OnRumbleStopped(default);
+        }
+
+        void Update()
+        {
+            if (!_isRumbling || cameraShake == null)
+                return;
+
+            _rumbleTime += Time.unscaledDeltaTime;
+            float ramp = roomRumbleRampUp > 0f ? Mathf.Clamp01(_rumbleTime / roomRumbleRampUp) : 1f;
+            cameraShake.HoldTrauma(roomRumbleTrauma * ramp);
         }
 
         void OnPlayerJumped(PlayerJumpedEvent evt) => Burst(dust, evt.Feet, jumpDust);
@@ -148,6 +179,27 @@ namespace APX.Feel
         {
             Shake(slamTrauma);
             Burst(doorDust, evt.Contact, slamDust, evt.Width);
+        }
+
+        void OnRumbleStarted(RumbleStartedEvent evt)
+        {
+            _isRumbling = true;
+            _rumbleTime = 0f;
+            if (ceilingDebris != null)
+                ceilingDebris.Begin(evt.Area);
+        }
+
+        void OnRumbleStopped(RumbleStoppedEvent evt)
+        {
+            _isRumbling = false;
+            if (ceilingDebris != null)
+                ceilingDebris.End();
+        }
+
+        void OnSpikeTrapPopped(SpikeTrapPoppedEvent evt)
+        {
+            Shake(spikeTrauma);
+            Burst(doorDust, evt.Surface, spikeDust, evt.Width);
         }
 
         void OnMaskBurst(MaskBurstEvent evt)

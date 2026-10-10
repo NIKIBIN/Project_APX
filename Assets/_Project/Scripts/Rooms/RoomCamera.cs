@@ -67,23 +67,38 @@ namespace APX.Rooms
             ApplyView();
         }
 
+        /// <summary>
+        /// Where the camera centres when zoomed to <paramref name="zoom"/> on <paramref name="focus"/>: the focus
+        /// pulled in as far as needed to keep the view inside the room. Lets cutscenes move the camera smoothly
+        /// even where it presses against the room's edges.
+        /// </summary>
+        public Vector2 GetViewCenter(Vector2 focus, float zoom)
+        {
+            if (_room == null)
+                return focus;
+
+            zoom = Mathf.Max(1f, zoom);
+            return zoom > 1f ? ClampToRoom(focus, GetSize(zoom)) : _room.Center;
+        }
+
         void ApplyView()
         {
-            float size = (fitToRoom ? GetFittedSize() : _authoredSize) / _zoom;
-            Vector2 center = _room.Center;
-
-            if (_zoomFocus != null && _zoom > 1f)
-            {
-                Vector2 halfView = new(size * _camera.aspect, size);
-                Rect bounds = _room.Bounds;
-                Vector2 focus = _zoomFocus.position;
-                center = new Vector2(
-                    ClampAxis(focus.x, bounds.xMin + halfView.x, bounds.xMax - halfView.x, center.x),
-                    ClampAxis(focus.y, bounds.yMin + halfView.y, bounds.yMax - halfView.y, center.y));
-            }
-
+            float size = GetSize(_zoom);
+            Vector2 center = _zoomFocus != null && _zoom > 1f ? ClampToRoom(_zoomFocus.position, size) : _room.Center;
             _camera.orthographicSize = size;
             transform.position = new Vector3(center.x, center.y, transform.position.z);
+        }
+
+        float GetSize(float zoom) => (fitToRoom ? GetFittedSize() : _authoredSize) / zoom;
+
+        Vector2 ClampToRoom(Vector2 focus, float size)
+        {
+            Vector2 halfView = new(size * _camera.aspect, size);
+            Rect bounds = _room.Bounds;
+            Vector2 center = _room.Center;
+            return new Vector2(
+                ClampAxis(focus.x, bounds.xMin + halfView.x, bounds.xMax - halfView.x, center.x),
+                ClampAxis(focus.y, bounds.yMin + halfView.y, bounds.yMax - halfView.y, center.y));
         }
 
         float GetFittedSize()

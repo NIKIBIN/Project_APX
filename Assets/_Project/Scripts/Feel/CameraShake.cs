@@ -57,6 +57,9 @@ namespace APX.Feel
 
         public void AddTrauma(float amount) => _trauma = Mathf.Clamp01(_trauma + amount);
 
+        /// <summary>Keeps trauma at least at <paramref name="minimum"/>; call every frame for a sustained rumble.</summary>
+        public void HoldTrauma(float minimum) => _trauma = Mathf.Clamp01(Mathf.Max(_trauma, minimum));
+
         void OnBeginCameraRendering(ScriptableRenderContext context, Camera rendering)
         {
             float shake = _trauma * _trauma * intensity;

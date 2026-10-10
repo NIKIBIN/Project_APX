@@ -49,28 +49,33 @@ namespace APX.UI
         void OnGenerateVisualContent(MeshGenerationContext context)
         {
             Rect rect = contentRect;
-            if (rect.width < 1f || rect.height < 1f || _radius >= GetOpenRadius(_center))
+            if (!(rect.width >= 1f && rect.height >= 1f) || _radius >= GetOpenRadius(_center))
                 return;
+
+            // The cover is a circle around the hole, big enough to reach every corner, rather than the element's
+            // rectangle: a hole crossing the rectangle's edge (centre near the screen edge) tessellates into an
+            // eye-like shape, while two concentric circles never intersect.
+            // A hole set before the first layout (e.g. covering the screen on load) has no valid centre yet.
+            Vector2 center = float.IsFinite(_center.x) && float.IsFinite(_center.y) ? _center : rect.center;
 
             Painter2D painter = context.painter2D;
             painter.fillColor = _color;
             painter.BeginPath();
-            painter.MoveTo(new Vector2(rect.xMin, rect.yMin));
-            painter.LineTo(new Vector2(rect.xMax, rect.yMin));
-            painter.LineTo(new Vector2(rect.xMax, rect.yMax));
-            painter.LineTo(new Vector2(rect.xMin, rect.yMax));
-            painter.ClosePath();
+            AddCircle(painter, center, GetOpenRadius(center) + 2f);
 
             // A second sub-path filled with the odd-even rule punches the hole.
             if (_radius > 0.5f)
-            {
-                painter.MoveTo(_center + new Vector2(_radius, 0f));
-                painter.Arc(_center, _radius, Angle.Degrees(0f), Angle.Degrees(180f));
-                painter.Arc(_center, _radius, Angle.Degrees(180f), Angle.Degrees(360f));
-                painter.ClosePath();
-            }
+                AddCircle(painter, center, _radius);
 
             painter.Fill(FillRule.OddEven);
+        }
+
+        static void AddCircle(Painter2D painter, Vector2 center, float radius)
+        {
+            painter.MoveTo(center + new Vector2(radius, 0f));
+            painter.Arc(center, radius, Angle.Degrees(0f), Angle.Degrees(180f));
+            painter.Arc(center, radius, Angle.Degrees(180f), Angle.Degrees(360f));
+            painter.ClosePath();
         }
     }
 }

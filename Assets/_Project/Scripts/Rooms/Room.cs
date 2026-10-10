@@ -83,6 +83,9 @@ namespace APX.Rooms
             Rect bounds = Bounds;
             Gizmos.color = IsCurrent ? new Color(0.3f, 1f, 0.45f, 0.9f) : new Color(1f, 1f, 1f, 0.35f);
             Gizmos.DrawWireCube(bounds.center, bounds.size);
+#if UNITY_EDITOR
+            UnityEditor.Handles.Label(new Vector3(bounds.xMin + 0.5f, bounds.yMax - 0.5f, 0f), name);
+#endif
 
             Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.9f);
             foreach (Transform point in spawnPoints)

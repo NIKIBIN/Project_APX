@@ -49,6 +49,22 @@ namespace APX.Player
         }
     }
 
+    /// <summary>
+    /// The "Segundo canal" danger sense changed level (the orb behind the player's head). Hook sounds here:
+    /// one per level, or a cue when it goes back to <see cref="DangerLevel.None"/>.
+    /// </summary>
+    public readonly struct DangerSenseChangedEvent : IEvent
+    {
+        public readonly DangerLevel Previous;
+        public readonly DangerLevel Current;
+
+        public DangerSenseChangedEvent(DangerLevel previous, DangerLevel current)
+        {
+            Previous = previous;
+            Current = current;
+        }
+    }
+
     /// <summary>The player reversed direction while running fast.</summary>
     public readonly struct PlayerSkiddedEvent : IEvent
     {

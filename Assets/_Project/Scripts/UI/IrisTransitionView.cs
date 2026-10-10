@@ -75,6 +75,8 @@ namespace APX.UI
             _iris.SetHole(Vector2.zero, float.PositiveInfinity);
         }
 
+        public void Cover() => _iris?.SetHole(_iris.contentRect.center, 0f);
+
         /// <summary>Re-centres on the focus every frame and sets the radius from the eased progress.</summary>
         IEnumerator Animate(Func<Vector2> worldFocus, float duration, Ease ease, Func<float, Vector2, float> radius)
         {
