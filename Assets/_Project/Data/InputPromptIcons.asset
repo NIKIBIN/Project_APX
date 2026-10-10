@@ -16,36 +16,46 @@ MonoBehaviour:
   - token: jump
     keyboardMouse:
       label: Space
+      sprite: {fileID: 7253652341725546674, guid: a329cbe4027938242a976f4baa9933ad, type: 3}
+      size: 1
       color: {r: 0.62, g: 0.4, b: 0.95, a: 1}
-      spriteName: 
     gamepad:
       label: A
+      sprite: {fileID: 1536610985664812233, guid: 2c3b3895d709df341ae617dc9fb3d31c, type: 3}
+      size: 1
       color: {r: 0.3, g: 0.8, b: 0.35, a: 1}
-      spriteName: 
   - token: attack
     keyboardMouse:
-      label: X
+      label: Mouse Left
+      sprite: {fileID: 21300000, guid: a4486c66fbf0f554593b8cce8555c30e, type: 3}
+      size: 1
       color: {r: 1, g: 0.58, b: 0.2, a: 1}
-      spriteName: 
     gamepad:
       label: X
+      sprite: {fileID: -9085605288992608834, guid: cde6641719e401040aa9e0245776c259, type: 3}
+      size: 1
       color: {r: 0.25, g: 0.5, b: 1, a: 1}
-      spriteName: 
   - token: masks
     keyboardMouse:
       label: Tab
+      sprite: {fileID: -3175427973421604348, guid: f026a2d1571be084999056c41d82b2e8, type: 3}
+      size: 1
       color: {r: 0.2, g: 0.8, b: 0.8, a: 1}
-      spriteName: 
     gamepad:
       label: LB
+      sprite: {fileID: 0}
+      size: 1
       color: {r: 0.78, g: 0.78, b: 0.85, a: 1}
-      spriteName: 
   - token: move
     keyboardMouse:
       label: WASD
+      sprite: {fileID: 21300000, guid: 99085f7fa7e11474ab8c3a1ddf048e9e, type: 3}
+      size: 1
       color: {r: 0.92, g: 0.35, b: 0.7, a: 1}
-      spriteName: 
     gamepad:
       label: Left Stick
+      sprite: {fileID: 21300000, guid: 2a57396dce638ee4f893a7a153cb34d0, type: 3}
+      size: 1
       color: {r: 0.5, g: 0.5, b: 0.56, a: 1}
-      spriteName: 
+  iconSize: 1.75
+  textSprites: {fileID: 11400000, guid: a4c3c892918baf24c985c3ead197dbfd, type: 2}

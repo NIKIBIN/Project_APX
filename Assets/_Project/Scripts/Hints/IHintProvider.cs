@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace APX.Hints
 {
     /// <summary>
@@ -7,5 +9,8 @@ namespace APX.Hints
     public interface IHintProvider
     {
         string GetHint();
+
+        /// <summary>Where the companion should wait while giving the hint; false to stay beside the player.</summary>
+        bool TryGetCompanionSpot(out Vector3 position);
     }
 }

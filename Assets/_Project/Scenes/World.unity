@@ -47178,7 +47178,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5796109736315494276, guid: 24aab31c0aa30904bbafb46814c4f081, type: 3}
       propertyPath: hint
-      value: "Ei! Voc\xEA est\xE1 bem? Voc\xEA caiu de muito alto! Vai de vagar, tente se mover com {move}"
+      value: "<shake>Ei! Voc\xEA est\xE1 bem?</shake>\n\nVoc\xEA..., voc\xEA veio l\xE1 da superficie?!\n\n Vai de vagar, voc\xEA n\xE3o parece estar bem\n\n<size=20><b>Tende adar at\xE9 a proxima sala usando: </b></size>{move}"
+      objectReference: {fileID: 0}
+    - target: {fileID: 5796109736315494276, guid: 24aab31c0aa30904bbafb46814c4f081, type: 3}
+      propertyPath: companionSpot
+      value: 
       objectReference: {fileID: 0}
     - target: {fileID: 7722374174522211596, guid: 24aab31c0aa30904bbafb46814c4f081, type: 3}
       propertyPath: m_LocalPosition.x
@@ -59855,6 +59859,14 @@ MonoBehaviour:
   charactersPerSecond: 40
   sentencePause: 0.2
   commaPause: 0.08
+  textEffects:
+    waveHeight: 2.5
+    waveSpeed: 7
+    shakeAmount: 1.2
+    shakeRate: 18
+    pulseAmount: 0.15
+    pulseSpeed: 6
+    rainbowSpeed: 0.4
 --- !u!114 &1843855840
 MonoBehaviour:
   m_ObjectHideFlags: 0

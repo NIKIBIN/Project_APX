@@ -5,7 +5,7 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.Utilities;
 
-namespace APX.Core
+namespace InputPrompts
 {
     /// <summary>The kind of controller the player is using, for on-screen button prompts.</summary>
     public enum ControlScheme
@@ -26,8 +26,21 @@ namespace APX.Core
 
         static IDisposable s_buttonListener;
         static bool s_listening;
+        static ControlScheme? s_override;
+        static ControlScheme s_detected;
 
         public static ControlScheme Current { get; private set; }
+
+        /// <summary>Set by testing tools: the scheme forced regardless of real input, or null to follow input again.</summary>
+        public static ControlScheme? Override
+        {
+            get => s_override;
+            set
+            {
+                s_override = value;
+                Publish(value ?? s_detected);
+            }
+        }
 
         public static event Action<ControlScheme> Changed;
 
@@ -37,13 +50,16 @@ namespace APX.Core
             // Domain reload may be off: drop the previous play session's listeners and subscribers.
             StopListening();
             Changed = null;
+            s_override = null;
+            s_detected = ControlScheme.KeyboardMouse;
             Current = ControlScheme.KeyboardMouse;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()
         {
-            Current = Gamepad.current != null && Keyboard.current == null ? ControlScheme.Gamepad : ControlScheme.KeyboardMouse;
+            s_detected = Gamepad.current != null && Keyboard.current == null ? ControlScheme.Gamepad : ControlScheme.KeyboardMouse;
+            Current = s_detected;
             s_buttonListener = InputSystem.onAnyButtonPress.Call(OnButtonPressed);
             InputSystem.onEvent += OnInputEvent;
             InputSystem.onDeviceChange += OnDeviceChange;
@@ -69,7 +85,7 @@ namespace APX.Core
         // Button presses come through OnButtonPressed; this only catches stick pushes.
         static void OnInputEvent(InputEventPtr eventPtr, InputDevice device)
         {
-            if (Current == ControlScheme.Gamepad || device is not Gamepad gamepad)
+            if (s_detected == ControlScheme.Gamepad || device is not Gamepad gamepad)
                 return;
             if (!eventPtr.IsA<StateEvent>() && !eventPtr.IsA<DeltaStateEvent>())
                 return;
@@ -83,7 +99,7 @@ namespace APX.Core
 
         static void OnDeviceChange(InputDevice device, InputDeviceChange change)
         {
-            if (change == InputDeviceChange.Removed && device is Gamepad && Current == ControlScheme.Gamepad && Gamepad.all.Count == 0)
+            if (change == InputDeviceChange.Removed && device is Gamepad && s_detected == ControlScheme.Gamepad && Gamepad.all.Count == 0)
                 Set(ControlScheme.KeyboardMouse);
         }
 
@@ -91,6 +107,13 @@ namespace APX.Core
             device is Gamepad or Joystick ? ControlScheme.Gamepad : ControlScheme.KeyboardMouse;
 
         static void Set(ControlScheme scheme)
+        {
+            s_detected = scheme;
+            if (s_override == null)
+                Publish(scheme);
+        }
+
+        static void Publish(ControlScheme scheme)
         {
             if (scheme == Current)
                 return;

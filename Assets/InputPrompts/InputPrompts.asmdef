@@ -1,9 +1,8 @@
 {
-    "name": "APX.Runtime",
-    "rootNamespace": "APX",
+    "name": "InputPrompts",
+    "rootNamespace": "InputPrompts",
     "references": [
-        "Unity.InputSystem",
-        "InputPrompts"
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

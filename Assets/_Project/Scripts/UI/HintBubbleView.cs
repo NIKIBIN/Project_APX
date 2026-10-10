@@ -4,6 +4,7 @@ using APX.Cutscenes;
 using APX.Hints;
 using APX.Rooms;
 using DG.Tweening;
+using InputPrompts;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -13,8 +14,8 @@ namespace APX.UI
     /// Screen-space speech bubble (UI Toolkit) that tracks the hint companion in the world. It waits until the
     /// companion has fully appeared at its place beside the player (and no cutscene is playing), then grows out
     /// of the companion; it shrinks back into it when dismissed. The first time it opens in each room the hint is
-    /// typed out one character at a time; afterwards it shows at once. Actions written as {jump}, {attack}...
-    /// show the button for the controller the player is using, switching live. Runs on unscaled time.
+    /// typed out one character at a time; afterwards it shows at once. Hints may use {action} button icons, rich
+    /// text tags and animated effects (see <see cref="HintText"/>). Runs on unscaled time.
     /// </summary>
     [DefaultExecutionOrder(100)] // After the companion has moved this frame.
     [RequireComponent(typeof(UIDocument))]
@@ -55,8 +56,12 @@ namespace APX.UI
         [Tooltip("Extra pause after , ; :")]
         [SerializeField, Min(0f)] float commaPause = 0.08f;
 
+        [Header("Text Effects")]
+        [Tooltip("Tuning for <wave>, <shake>, <pulse> and <rainbow> in hints.")]
+        [SerializeField] HintText.EffectSettings textEffects = HintText.EffectSettings.Default;
+
         readonly HashSet<Object> _typedRooms = new();
-        readonly InputPromptText _hint = new();
+        readonly HintText _hint = new();
         VisualElement _bubble;
         Label _text;
         State _state;
@@ -75,6 +80,7 @@ namespace APX.UI
             _bubble = root.Q("hintBubble");
             _text = root.Q<Label>("hintText");
             _text.enableRichText = true;
+            _text.PostProcessTextVertices = glyphs => _hint.ApplyEffects(glyphs, Time.unscaledTime, textEffects);
             if (worldCamera == null)
                 worldCamera = Camera.main;
 
@@ -88,6 +94,8 @@ namespace APX.UI
 
         void OnDisable()
         {
+            if (_text != null)
+                _text.PostProcessTextVertices = null;
             companion.HintChanged -= OnHintChanged;
             ControlSchemeTracker.Changed -= OnControlSchemeChanged;
             EventBus<CutsceneStartedEvent>.Unsubscribe(OnCutsceneStarted);
@@ -104,6 +112,19 @@ namespace APX.UI
             if (_isTyping)
                 UpdateTyping(deltaTime);
             ApplyLook();
+
+            // Animated effects are re-applied whenever the text repaints.
+            if (_hint.HasEffects)
+                _text.MarkDirtyRepaint();
+        }
+
+        /// <summary>Types the current room's hint out again, popping the bubble back open if it's showing (for testing).</summary>
+        public void ReplayHint()
+        {
+            if (RoomManager.CurrentRoom != null)
+                _typedRooms.Remove(RoomManager.CurrentRoom);
+            if (_state == State.Opening || _state == State.Open)
+                Open();
         }
 
         void UpdateState(float deltaTime)
@@ -296,10 +317,15 @@ namespace APX.UI
         void OnHintChanged(string hint)
         {
             _hint.SetText(hint);
+            if (_state != State.Opening && _state != State.Open)
+                return;
 
-            // A new room's hint while open: pop out of the companion again (typing it if it's new here).
-            if (_state == State.Opening || _state == State.Open)
+            // A new room's hint while open: pop out of the companion again (typing it if it's new here), or, if it
+            // has to fly to the room's companion spot first, wait until it gets there.
+            if (companion.IsSettled)
                 Open();
+            else
+                SetState(State.Waiting);
         }
 
         // Swaps the button icons in place, keeping how much of the hint has been typed so far.
