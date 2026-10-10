@@ -13694,30 +13694,55 @@ MonoBehaviour:
   m_EditorClassIdentifier: APX.Runtime::APX.Cutscenes.IntroCutscene
   player: {fileID: 0}
   roomCamera: {fileID: 0}
+  companion: {fileID: 0}
+  maskManager: {fileID: 0}
   playOnStart: 1
   openingTransition: {fileID: 0}
+  blackScreenTime: 0.5
+  introZoom: 2.5
+  cameraMoveTime: 0.45
   fallState: IntroFall
   knockedOutState: IntroKnockedOut
   jumpState: Jump
-  introZoom: 2.5
-  zoomOutDuration: 1.2
-  zoomOutEase: 4
-  controlDuringZoomOut: 0
+  spiritAnchor: {fileID: 0}
+  wanderSize: {x: 2.5, y: 0.7}
+  wanderPeriod: 5
+  wanderTime: 1.5
+  rumbleDuration: 2.5
+  puzzledDelay: 0.6
+  spiritStopTime: 0.4
+  lookAroundInterval: 0.5
+  pauseAfterRumble: 1
   ceilingOpening: {fileID: 441875651}
   offscreenMargin: 1.5
   fallHeight: 6
-  startDelay: 1.5
-  knockedOutTime: 1
-  firstShakeStrength: 0.04
-  firstShakeDuration: 0.25
-  pauseBetweenShakes: 0.5
-  secondShakeStrength: 0.09
-  secondShakeDuration: 0.4
+  holdBeforeFall: 0.6
+  surpriseDelay: 0.6
+  surpriseTime: 0.7
+  twoShotMargin: {x: 3, y: 2.5}
+  spiritSpeed: 7
+  nudgeSpot: {x: 0.95, y: 0}
+  nudgeDistance: 0.3
+  nudgeInTime: 0.07
+  nudgeOutTime: 0.16
+  nudgePush: 0.06
+  pauseAfterFirstNudge: 0.7
+  quickNudgeGap: 0.08
+  pauseBeforeTremble: 0.6
+  firstTrembleStrength: 0.04
+  firstTrembleDuration: 0.25
+  pauseBetweenTrembles: 0.5
+  quickTrembleStrength: 0.08
+  quickTrembleDuration: 0.18
+  quickTrembleGap: 0.08
   pauseBeforeHop: 0.35
   hopSpeed: 9
-  finishedEventDelay: 0.6
+  pauseBeforeZoomOut: 0.4
+  zoomOutDuration: 1.2
+  zoomOutEase: 4
+  controlDuringZoomOut: 0
   summonCompanion: 1
-  maskManager: {fileID: 0}
+  finishedEventDelay: 0.6
   onFinished:
     m_PersistentCalls:
       m_Calls: []
@@ -18499,6 +18524,13 @@ MonoBehaviour:
   worldCamera: {fileID: 519420031}
   worldOffset: {x: 0, y: 0.6}
   screenMargin: 12
+  inputIcons: {fileID: 11400000, guid: 1ab05b7a81c72034e9d24ddee46ca560, type: 2}
+  openDelay: 0.2
+  openDuration: 0.3
+  closeDuration: 0.15
+  charactersPerSecond: 40
+  sentencePause: 0.2
+  commaPause: 0.08
 --- !u!114 &1843855840
 MonoBehaviour:
   m_ObjectHideFlags: 0

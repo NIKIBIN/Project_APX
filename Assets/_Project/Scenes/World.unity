@@ -47178,7 +47178,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5796109736315494276, guid: 24aab31c0aa30904bbafb46814c4f081, type: 3}
       propertyPath: hint
-      value: "Ei! Voc\xEA est\xE1 bem? Voc\xEA caiu de muito alto!"
+      value: "Ei! Voc\xEA est\xE1 bem? Voc\xEA caiu de muito alto! Vai de vagar, tente se mover com {move}"
       objectReference: {fileID: 0}
     - target: {fileID: 7722374174522211596, guid: 24aab31c0aa30904bbafb46814c4f081, type: 3}
       propertyPath: m_LocalPosition.x
@@ -59848,6 +59848,7 @@ MonoBehaviour:
   worldCamera: {fileID: 519420031}
   worldOffset: {x: 0, y: 0.6}
   screenMargin: 12
+  inputIcons: {fileID: 11400000, guid: 1ab05b7a81c72034e9d24ddee46ca560, type: 2}
   openDelay: 0.2
   openDuration: 0.3
   closeDuration: 0.15

@@ -18496,6 +18496,13 @@ MonoBehaviour:
   worldCamera: {fileID: 519420031}
   worldOffset: {x: 0, y: 0.6}
   screenMargin: 12
+  inputIcons: {fileID: 11400000, guid: 1ab05b7a81c72034e9d24ddee46ca560, type: 2}
+  openDelay: 0.2
+  openDuration: 0.3
+  closeDuration: 0.15
+  charactersPerSecond: 40
+  sentencePause: 0.2
+  commaPause: 0.08
 --- !u!114 &1843855840
 MonoBehaviour:
   m_ObjectHideFlags: 0

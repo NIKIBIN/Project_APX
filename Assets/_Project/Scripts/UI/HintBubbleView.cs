@@ -13,14 +13,14 @@ namespace APX.UI
     /// Screen-space speech bubble (UI Toolkit) that tracks the hint companion in the world. It waits until the
     /// companion has fully appeared at its place beside the player (and no cutscene is playing), then grows out
     /// of the companion; it shrinks back into it when dismissed. The first time it opens in each room the hint is
-    /// typed out one character at a time; afterwards it shows at once. Runs on unscaled time.
+    /// typed out one character at a time; afterwards it shows at once. Actions written as {jump}, {attack}...
+    /// show the button for the controller the player is using, switching live. Runs on unscaled time.
     /// </summary>
     [DefaultExecutionOrder(100)] // After the companion has moved this frame.
     [RequireComponent(typeof(UIDocument))]
     public sealed class HintBubbleView : MonoBehaviour
     {
         const string HiddenClass = "hint-bubble--hidden";
-        const string HiddenTextTag = "<alpha=#00>";
 
         enum State
         {
@@ -37,6 +37,8 @@ namespace APX.UI
         [Tooltip("World-space offset from the companion to the tip of the bubble.")]
         [SerializeField] Vector2 worldOffset = new(0f, 0.6f);
         [SerializeField, Min(0f)] float screenMargin = 12f;
+        [Tooltip("Button icons for {action} prompts in hints.")]
+        [SerializeField] InputPromptIcons inputIcons;
 
         [Header("Appear")]
         [Tooltip("Seconds after the companion has settled beside the player before the bubble opens.")]
@@ -54,12 +56,13 @@ namespace APX.UI
         [SerializeField, Min(0f)] float commaPause = 0.08f;
 
         readonly HashSet<Object> _typedRooms = new();
+        readonly InputPromptText _hint = new();
         VisualElement _bubble;
         Label _text;
         State _state;
         float _timer;
         float _reveal;
-        string _hint = string.Empty;
+        int _shownCount;
         bool _isTyping;
         int _typedCount;
         float _typeTimer;
@@ -76,15 +79,17 @@ namespace APX.UI
                 worldCamera = Camera.main;
 
             companion.HintChanged += OnHintChanged;
+            ControlSchemeTracker.Changed += OnControlSchemeChanged;
             EventBus<CutsceneStartedEvent>.Subscribe(OnCutsceneStarted);
             EventBus<CutsceneEndedEvent>.Subscribe(OnCutsceneEnded);
-            _hint = companion.CurrentHint ?? string.Empty;
+            _hint.SetText(companion.CurrentHint);
             SetState(State.Hidden);
         }
 
         void OnDisable()
         {
             companion.HintChanged -= OnHintChanged;
+            ControlSchemeTracker.Changed -= OnControlSchemeChanged;
             EventBus<CutsceneStartedEvent>.Unsubscribe(OnCutsceneStarted);
             EventBus<CutsceneEndedEvent>.Unsubscribe(OnCutsceneEnded);
         }
@@ -196,7 +201,7 @@ namespace APX.UI
             SetState(State.Opening);
             Room room = RoomManager.CurrentRoom;
             _typingRoom = room;
-            _isTyping = !string.IsNullOrEmpty(_hint) && (room == null || !_typedRooms.Contains(room));
+            _isTyping = _hint.Length > 0 && (room == null || !_typedRooms.Contains(room));
             _typedCount = 0;
             _typeTimer = 0f;
             ShowText(_isTyping ? 0 : _hint.Length);
@@ -241,11 +246,11 @@ namespace APX.UI
                 return 0f;
 
             // Only at the end of a word, so "..." or "?!" pause once.
-            bool nextIsSpace = index + 1 >= _hint.Length || char.IsWhiteSpace(_hint[index + 1]);
+            bool nextIsSpace = index + 1 >= _hint.Length || char.IsWhiteSpace(_hint.CharAt(index + 1));
             if (!nextIsSpace)
                 return 0f;
 
-            return _hint[index] switch
+            return _hint.CharAt(index) switch
             {
                 '.' or '!' or '?' => sentencePause,
                 ',' or ';' or ':' => commaPause,
@@ -253,14 +258,12 @@ namespace APX.UI
             };
         }
 
-        /// <summary>Shows the first <paramref name="visibleCount"/> characters; the rest stay laid out but invisible,
-        /// so the bubble keeps its final size while typing.</summary>
+        /// <summary>Shows the first <paramref name="visibleCount"/> characters and icons; the rest stay laid out but
+        /// invisible, so the bubble keeps its final size while typing.</summary>
         void ShowText(int visibleCount)
         {
-            visibleCount = Mathf.Clamp(visibleCount, 0, _hint.Length);
-            _text.text = visibleCount >= _hint.Length
-                ? _hint
-                : _hint.Substring(0, visibleCount) + HiddenTextTag + _hint.Substring(visibleCount);
+            _shownCount = Mathf.Clamp(visibleCount, 0, _hint.Length);
+            _text.text = _hint.Render(_shownCount, ControlSchemeTracker.Current, inputIcons);
         }
 
         void ApplyLook()
@@ -292,11 +295,18 @@ namespace APX.UI
 
         void OnHintChanged(string hint)
         {
-            _hint = hint ?? string.Empty;
+            _hint.SetText(hint);
 
             // A new room's hint while open: pop out of the companion again (typing it if it's new here).
             if (_state == State.Opening || _state == State.Open)
                 Open();
+        }
+
+        // Swaps the button icons in place, keeping how much of the hint has been typed so far.
+        void OnControlSchemeChanged(ControlScheme scheme)
+        {
+            if (_state == State.Opening || _state == State.Open || _state == State.Closing)
+                ShowText(_shownCount);
         }
 
         void OnCutsceneStarted(CutsceneStartedEvent evt) => _isCutscenePlaying = true;
