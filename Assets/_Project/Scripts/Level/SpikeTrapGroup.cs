@@ -12,9 +12,11 @@ namespace APX.Level
     /// Calm until the player steps on any of them; the first strike then waits at least the first strike delay, and
     /// each later one a random pause (spikes down) between the configured minimum and maximum. After a while with
     /// nobody on a trap the group calms down again, so the next step gets the first strike delay again.
-    /// Times are local: the traps' mask time scale (the accelerated-world curse) speeds the rhythm up.
-    /// Also a danger source for the "Segundo canal" danger sense. Traps find the group in their parents and add
-    /// one to their room when there is none.
+    /// Spike traps are the "Segundo canal" hazard: the group is a danger source for its danger sense, and no mask
+    /// changes the rhythm, so Nice and Slow can't beat them. Keep the minimum pause short: without the danger sense
+    /// the next strike can't be predicted, so crossing a field blind is a gamble. Times are local, in case a time
+    /// source is ever added on purpose. Traps find the group in their parents and add one to their room when there
+    /// is none.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class SpikeTrapGroup : MonoBehaviour, IDangerSource, IResettable
@@ -29,18 +31,19 @@ namespace APX.Level
         }
 
         [Header("Rhythm")]
-        [Tooltip("Minimum seconds between first stepping on a trap and the first strike.")]
-        [SerializeField, Min(0f)] float firstStrikeDelay = 2f;
+        [Tooltip("Minimum seconds between first stepping on a trap and the first strike. Keep it above a reaction " +
+                 "time, so a player reading the danger sense can still step back.")]
+        [SerializeField, Min(0f)] float firstStrikeDelay = 0.8f;
         [Tooltip("Seconds the spikes stay down between strikes: random between X (minimum) and Y (maximum).")]
-        [SerializeField] Vector2 pauseBetweenStrikes = new(2f, 4f);
+        [SerializeField] Vector2 pauseBetweenStrikes = new(0.6f, 2.6f);
         [Tooltip("Seconds without anyone on a trap before the group calms down and the first strike delay applies again.")]
-        [SerializeField, Min(0f)] float calmDownTime = 3f;
+        [SerializeField, Min(0f)] float calmDownTime = 2f;
 
         [Header("Strike")]
         [Tooltip("Seconds for the spikes to shoot out. Keep it tiny: it should feel sudden.")]
-        [SerializeField, Min(0.01f)] float popDuration = 0.05f;
-        [SerializeField, Min(0f)] float upDuration = 0.4f;
-        [SerializeField, Min(0.01f)] float retractDuration = 0.25f;
+        [SerializeField, Min(0.01f)] float popDuration = 0.035f;
+        [SerializeField, Min(0f)] float upDuration = 0.3f;
+        [SerializeField, Min(0.01f)] float retractDuration = 0.18f;
 
         [Header("Stepping On")]
         [Tooltip("How far the player's feet may be above (or below) a trap's surface and still count as on it.")]
@@ -96,7 +99,7 @@ namespace APX.Level
             if (!_traps.Contains(trap))
                 _traps.Add(trap);
 
-            // Spike traps carry their own mask time responder (like other world hazards); all share one rhythm.
+            // All traps share one rhythm, so the first trap's time source (if any) drives the group.
             _timeSource ??= trap.TimeSource;
         }
 

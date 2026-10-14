@@ -13692,12 +13692,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbc4773f42922bb4c81490655cc0232e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: APX.Runtime::APX.Cutscenes.IntroCutscene
-  player: {fileID: 0}
-  roomCamera: {fileID: 0}
-  companion: {fileID: 0}
-  maskManager: {fileID: 0}
-  playOnStart: 1
-  openingTransition: {fileID: 0}
+  trigger: 1
+  room: {fileID: 0}
+  playOnce: 1
+  finishedEventDelay: 0.6
+  onFinished:
+    m_PersistentCalls:
+      m_Calls: []
   blackScreenTime: 0.5
   introZoom: 2.5
   cameraMoveTime: 0.45
@@ -13737,15 +13738,25 @@ MonoBehaviour:
   quickTrembleGap: 0.08
   pauseBeforeHop: 0.35
   hopSpeed: 9
+  spiritBackOff: {x: 1.1, y: 0.5}
+  backOffTime: 0.35
+  pauseBeforeTalking: 0.3
+  askLine: "Voc\xEA est\xE1 bem?"
+  reactionSound: {fileID: 8300000, guid: 1a2fa2f6d08f0db4b84c355c09825c21, type: 3}
+  reactionSprite: {fileID: 21300000, guid: f8220f2b3e58f904ca1ef7fe554b33aa, type: 3}
+  reactionTime: 0.5
+  replyLines:
+  - ...
+  - O que foi, o gato comeu a sua... ah, esquece.
+  openingTalkOffset: {x: 0, y: -2.5}
+  fallLines:
+  - "Mas minha nossa, foi uma queda e tanto, estou surpreso de voc\xEA estar inteiro."
+  - "Mas \xE9 como dizem, gatos t\xEAm 9 vidas, n\xE3o \xE9 mesmo?"
   pauseBeforeZoomOut: 0.4
   zoomOutDuration: 1.2
   zoomOutEase: 4
   controlDuringZoomOut: 0
   summonCompanion: 1
-  finishedEventDelay: 0.6
-  onFinished:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!4 &1146535409
 Transform:
   m_ObjectHideFlags: 0
@@ -18531,6 +18542,14 @@ MonoBehaviour:
   charactersPerSecond: 40
   sentencePause: 0.2
   commaPause: 0.08
+  textEffects:
+    waveHeight: 2.5
+    waveSpeed: 7
+    shakeAmount: 1.2
+    shakeRate: 18
+    pulseAmount: 0.15
+    pulseSpeed: 6
+    rainbowSpeed: 0.4
 --- !u!114 &1843855840
 MonoBehaviour:
   m_ObjectHideFlags: 0

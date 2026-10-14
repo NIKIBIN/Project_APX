@@ -11,10 +11,12 @@ namespace APX.Rooms
     public interface IRespawnTransition
     {
         /// <summary>Covers the screen; it must end fully covered.</summary>
-        IEnumerator Close(Func<Vector2> worldFocus);
+        /// <param name="quick">Play a shorter version, e.g. when retrying the same room.</param>
+        IEnumerator Close(Func<Vector2> worldFocus, bool quick = false);
 
         /// <summary>Reveals the screen again after the room was reset.</summary>
-        IEnumerator Open(Func<Vector2> worldFocus);
+        /// <param name="quick">Play a shorter version, e.g. when retrying the same room.</param>
+        IEnumerator Open(Func<Vector2> worldFocus, bool quick = false);
 
         /// <summary>Covers the screen at once, e.g. so a scene can open with <see cref="Open"/>.</summary>
         void Cover();

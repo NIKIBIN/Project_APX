@@ -17,6 +17,8 @@ namespace APX.Core
         public event Action AttackPressed;
         public event Action MaskMenuOpened;
         public event Action MaskMenuClosed;
+        /// <summary>Esc (Start on a gamepad), e.g. to skip a cutscene.</summary>
+        public event Action SkipPressed;
 
         // NonSerialized matters: the editor's script-reload serialization also captures private fields,
         // and would restore a half-built map (no runtime state, no callbacks) that ignores Enable().
@@ -25,6 +27,7 @@ namespace APX.Core
         [NonSerialized] InputAction _jump;
         [NonSerialized] InputAction _attack;
         [NonSerialized] InputAction _maskMenu;
+        [NonSerialized] InputAction _skip;
         [NonSerialized] InputAction _pointerDelta;
         [NonSerialized] InputAction _menuStick;
 
@@ -91,6 +94,7 @@ namespace APX.Core
             _jump = AddButton("Jump", "<Keyboard>/space", "<Keyboard>/z", "<Gamepad>/buttonSouth");
             _attack = AddButton("Attack", "<Keyboard>/x", "<Keyboard>/j", "<Mouse>/leftButton", "<Gamepad>/buttonWest");
             _maskMenu = AddButton("MaskMenu", "<Keyboard>/tab", "<Gamepad>/leftShoulder");
+            _skip = AddButton("Skip", "<Keyboard>/escape", "<Gamepad>/start");
 
             _pointerDelta = _map.AddAction("PointerDelta", InputActionType.PassThrough, "<Pointer>/delta", expectedControlLayout: "Vector2");
             _menuStick = _map.AddAction("MenuStick", InputActionType.Value, "<Gamepad>/rightStick", expectedControlLayout: "Vector2");
@@ -100,6 +104,7 @@ namespace APX.Core
             _attack.performed += _ => AttackPressed?.Invoke();
             _maskMenu.performed += _ => MaskMenuOpened?.Invoke();
             _maskMenu.canceled += _ => MaskMenuClosed?.Invoke();
+            _skip.performed += _ => SkipPressed?.Invoke();
         }
 
         InputAction AddButton(string actionName, params string[] bindings)

@@ -12,6 +12,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: PatrolEnemy_Hidden
       objectReference: {fileID: 0}
+    - target: {fileID: 2739583139837869971, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
+      propertyPath: moveSpeed
+      value: 3.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 2739583139837869971, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
+      propertyPath: turnPause
+      value: 0.2
+      objectReference: {fileID: 0}
     - target: {fileID: 7490342296050295882, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
       propertyPath: m_Color.b
       value: 1
@@ -64,13 +72,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6210660502898613344, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2606934906408566158, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2666339209133700735}
+    - targetCorrespondingSourceObject: {fileID: 2606934906408566158, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7817283272420761114}
   m_SourcePrefab: {fileID: 100100000, guid: 0ad67f0c45afb72458622738e8033632, type: 3}
 --- !u!1 &3838767979018477661 stripped
 GameObject:
@@ -92,3 +104,18 @@ MonoBehaviour:
   mask: 2
   invert: 0
   hiddenAlpha: 0
+--- !u!114 &7817283272420761114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3838767979018477661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ad34bd796cd3f84480c491cf85ed6bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Enemies.ProximityDangerSource
+  reach: 3
+  smoothing: 0.1
+  minClosingSpeed: 0.1

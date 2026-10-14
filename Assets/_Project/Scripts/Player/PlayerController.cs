@@ -44,6 +44,12 @@ namespace APX.Player
 
         public float MaxRunSpeed => config.MaxRunSpeed;
 
+        /// <summary>Layers the player stands on.</summary>
+        public LayerMask GroundLayers => config.GroundLayers;
+
+        /// <summary>The player's input, e.g. for cutscenes waiting on a button.</summary>
+        public InputReader Input => input;
+
         public event Action Jumped;
 
         /// <summary>Touched down; the argument is the fastest downward speed reached during the fall.</summary>
@@ -160,6 +166,22 @@ namespace APX.Player
         public void Launch(Vector2 velocity)
         {
             ResetMotionState();
+            _body.linearVelocity = velocity;
+        }
+
+        /// <summary>
+        /// Makes the player keep rising at least <paramref name="height"/> more under plain gravity (no jump cut or
+        /// apex hang), e.g. after jumping up into the room above. Never slows a faster rise.
+        /// </summary>
+        public void BoostUpward(float height)
+        {
+            if (height <= 0f)
+                return;
+
+            _isJumping = false;
+            _isJumpCut = false;
+            Vector2 velocity = _body.linearVelocity;
+            velocity.y = Mathf.Max(velocity.y, Mathf.Sqrt(2f * config.Gravity * height));
             _body.linearVelocity = velocity;
         }
 

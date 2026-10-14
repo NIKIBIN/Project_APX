@@ -18,8 +18,8 @@ namespace APX.DebugTools
     {
         [Tooltip("Defaults to the MaskManager in the scene.")]
         [SerializeField] MaskManager maskManager;
-        [Tooltip("Defaults to the HintBubbleView in the scene.")]
-        [SerializeField] HintBubbleView bubble;
+        [Tooltip("Defaults to the SpeechBubbleView in the scene.")]
+        [SerializeField] SpeechBubbleView bubble;
         [Tooltip("Defaults to the HintCompanion in the scene.")]
         [SerializeField] HintCompanion companion;
         [Tooltip("Mask put on to send the companion away (F1).")]
@@ -34,7 +34,7 @@ namespace APX.DebugTools
             if (maskManager == null)
                 maskManager = FindAnyObjectByType<MaskManager>();
             if (bubble == null)
-                bubble = FindAnyObjectByType<HintBubbleView>();
+                bubble = FindAnyObjectByType<SpeechBubbleView>();
             if (companion == null)
                 companion = FindAnyObjectByType<HintCompanion>();
         }

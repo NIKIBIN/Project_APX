@@ -47,6 +47,15 @@
     -unity-font-style: bold-and-italic;
 }
 
+.radial-slot--locked {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.radial-slot--locked.radial-slot--hovered {
+    color: rgba(255, 255, 255, 0.45);
+    scale: 1 1;
+}
+
 .radial-center {
     position: absolute;
     left: 50%;

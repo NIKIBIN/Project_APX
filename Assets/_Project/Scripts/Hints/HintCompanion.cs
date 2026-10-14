@@ -150,6 +150,17 @@ namespace APX.Hints
                 visualRoot.SetActive(false);
         }
 
+        /// <summary>Puts the companion at its place at once (the room's companion spot, or beside the player), e.g. after
+        /// a skipped cutscene.</summary>
+        public void SnapToPlace()
+        {
+            if (followTarget == null)
+                return;
+
+            transform.position = GetTargetPosition(out _);
+            _velocity = Vector3.zero;
+        }
+
         /// <summary>Turns the companion to look right (1) or left (-1).</summary>
         public void SetFacing(int direction)
         {

@@ -5,7 +5,8 @@ namespace APX.UI
 {
     /// <summary>
     /// Four-segment ring drawn with Painter2D. Segment order matches <see cref="RadialDirection"/>.
-    /// The hovered segment is drawn larger and opaque; the equipped one gets an outline.
+    /// The hovered segment is drawn larger and opaque; the equipped one gets an outline. Locked segments are
+    /// a faint grey silhouette that never grows.
     /// </summary>
     [UxmlElement]
     public partial class RadialRing : VisualElement
@@ -15,7 +16,11 @@ namespace APX.UI
         // Up, Right, Down, Left. Panel space has +y pointing down, so "up" is -90 degrees.
         static readonly float[] s_segmentCenterAngles = { -90f, 0f, 90f, 180f };
 
+        static readonly Color s_lockedFill = new(0.55f, 0.57f, 0.65f, 0.14f);
+        static readonly Color s_lockedOutline = new(1f, 1f, 1f, 0.22f);
+
         readonly Color[] _colors = { Color.gray, Color.gray, Color.gray, Color.gray };
+        readonly bool[] _locked = new bool[SegmentCount];
         int _hoveredIndex = -1;
         int _equippedIndex = -1;
         float _thickness = 110f;
@@ -66,6 +71,15 @@ namespace APX.UI
             MarkDirtyRepaint();
         }
 
+        public void SetSegmentLocked(int index, bool locked)
+        {
+            if (_locked[index] == locked)
+                return;
+
+            _locked[index] = locked;
+            MarkDirtyRepaint();
+        }
+
         void OnGenerateVisualContent(MeshGenerationContext context)
         {
             if (contentRect.width < 1f || contentRect.height < 1f)
@@ -79,8 +93,9 @@ namespace APX.UI
 
             for (int i = 0; i < SegmentCount; i++)
             {
+                bool locked = _locked[i];
                 bool hovered = i == _hoveredIndex;
-                float segmentOuter = hovered ? outer + HoverGrowth : outer;
+                float segmentOuter = hovered && !locked ? outer + HoverGrowth : outer;
                 float start = s_segmentCenterAngles[i] - halfSpan;
                 float end = s_segmentCenterAngles[i] + halfSpan;
 
@@ -88,6 +103,20 @@ namespace APX.UI
                 painter.Arc(center, segmentOuter, Angle.Degrees(start), Angle.Degrees(end), ArcDirection.Clockwise);
                 painter.Arc(center, inner, Angle.Degrees(end), Angle.Degrees(start), ArcDirection.CounterClockwise);
                 painter.ClosePath();
+
+                if (locked)
+                {
+                    Color lockedFill = s_lockedFill;
+                    if (hovered)
+                        lockedFill.a *= 1.8f;
+                    painter.fillColor = lockedFill;
+                    painter.Fill();
+                    painter.strokeColor = s_lockedOutline;
+                    painter.lineWidth = 2f;
+                    painter.lineJoin = LineJoin.Round;
+                    painter.Stroke();
+                    continue;
+                }
 
                 Color fill = _colors[i];
                 fill.a = hovered ? 0.95f : 0.5f;

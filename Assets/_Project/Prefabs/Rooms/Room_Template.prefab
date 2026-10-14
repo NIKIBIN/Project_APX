@@ -430,6 +430,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: APX.Runtime::APX.Hints.RoomHint
   hint: 
+  companionSpot: {fileID: 0}
 --- !u!114 &9171992579412106422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -442,12 +443,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba2a37a6faea61a4893ca1d61eb850cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: APX.Runtime::APX.Level.SpikeTrapGroup
-  firstStrikeDelay: 2
-  pauseBetweenStrikes: {x: 2, y: 4}
-  calmDownTime: 3
-  popDuration: 0.05
-  upDuration: 0.4
-  retractDuration: 0.25
+  firstStrikeDelay: 0.8
+  pauseBetweenStrikes: {x: 0.6, y: 2.6}
+  calmDownTime: 2
+  popDuration: 0.035
+  upDuration: 0.3
+  retractDuration: 0.18
   contactTolerance: 0.15
   feetWidth: 0.5
 --- !u!1 &1826193826406223480

@@ -1,15 +1,9 @@
 using System;
 using System.Collections;
-using APX.Core;
 using APX.Feel;
-using APX.Hints;
-using APX.Level;
-using APX.Masks;
-using APX.Player;
 using APX.Rooms;
 using DG.Tweening;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace APX.Cutscenes
 {
@@ -20,34 +14,19 @@ namespace APX.Cutscenes
     /// <item>The room rumbles and debris falls from the ceiling; the spirit stops, puzzled ("?").</item>
     /// <item>Once it calms down, the camera pans to the ceiling opening and the player drops through it, knocked out.</item>
     /// <item>The spirit notices ("!"), flies over and nudges the player: once, then twice. The player trembles once,
-    /// then twice, and hops to their feet.</item>
-    /// <item>The spirit takes its place beside the player, the camera zooms out to the room and control returns.</item>
+    /// then twice, and hops to their feet, startling the spirit back.</item>
+    /// <item>The spirit asks if they're all right; the player can only answer with a sound and a face. The spirit gives
+    /// up, flies up to the opening and marvels at the fall.</item>
+    /// <item>The spirit heads to its place (the room's companion spot, e.g. by the exit, or beside the player), the
+    /// camera zooms out to the room and control returns.</item>
     /// </list>
     /// Without a companion the spirit beats are skipped; without a ceiling opening the player appears above their
-    /// placed position instead. Ordinary game systems (gravity, landing dust, squash) play along.
+    /// placed position instead. Ordinary game systems (gravity, landing dust, squash) play along. Skipping it (Esc)
+    /// leaves the player standing where the fall lands and the spirit at its place.
     /// </summary>
-    [DefaultExecutionOrder(-10)] // Moves the camera focus before the RoomCamera applies it.
-    public sealed class IntroCutscene : MonoBehaviour
+    public sealed class IntroCutscene : Cutscene
     {
-        const float MaxBlackStep = 1f / 30f;
-        const float CameraArrivedDistance = 0.05f;
-        const float CameraTimeout = 3f;
-
-        [Header("References")]
-        [Tooltip("Defaults to the PlayerController in the scene.")]
-        [SerializeField] PlayerController player;
-        [Tooltip("Defaults to the RoomCamera in the scene.")]
-        [SerializeField] RoomCamera roomCamera;
-        [Tooltip("The spirit. Defaults to the HintCompanion in the scene; without one its beats are skipped.")]
-        [SerializeField] HintCompanion companion;
-        [Tooltip("Defaults to the MaskManager in the scene.")]
-        [SerializeField] MaskManager maskManager;
-        [SerializeField] bool playOnStart = true;
-
         [Header("Opening")]
-        [Tooltip("Component implementing IRespawnTransition (e.g. the HUD's IrisTransitionView) that opens the " +
-                 "scene. Found automatically when empty; without one the scene starts uncovered.")]
-        [SerializeField] MonoBehaviour openingTransition;
         [Tooltip("Seconds the screen stays completely black before the opening transition starts.")]
         [SerializeField, Min(0f)] float blackScreenTime = 0.5f;
         [Tooltip("Camera zoom during the cutscene: 1 shows the whole room, 2.5 shows 40% of it.")]
@@ -59,6 +38,8 @@ namespace APX.Cutscenes
         [SerializeField] string fallState = "IntroFall";
         [SerializeField] string knockedOutState = "IntroKnockedOut";
         [SerializeField] string jumpState = "Jump";
+        [Tooltip("Where the player is left standing when the cutscene is skipped.")]
+        [SerializeField] string idleState = "Idle";
 
         [Header("Spirit Floating Around")]
         [Tooltip("Centre of the spirit's floating. Defaults to the middle of the room.")]
@@ -121,8 +102,35 @@ namespace APX.Cutscenes
         [Tooltip("Upward speed of the hop to the feet.")]
         [SerializeField, Min(0f)] float hopSpeed = 9f;
 
+        [Header("Talking")]
+        [Tooltip("How far the spirit backs off (away from the player, and up) when they spring to their feet.")]
+        [SerializeField] Vector2 spiritBackOff = new(1.1f, 0.5f);
+        [SerializeField, Min(0.01f)] float backOffTime = 0.35f;
+        [Tooltip("Seconds after the player lands before the spirit speaks.")]
+        [SerializeField, Min(0f)] float pauseBeforeTalking = 0.3f;
+        [SerializeField, TextArea(1, 3)] string askLine = "Você está bem?";
+        [Tooltip("The player's answer: this sound...")]
+        [SerializeField] AudioClip reactionSound;
+        [Tooltip("...while showing this sprite for a moment.")]
+        [SerializeField] Sprite reactionSprite;
+        [SerializeField, Min(0f)] float reactionTime = 0.5f;
+        [Tooltip("The spirit's lines after the player's answer.")]
+        [SerializeField, TextArea(1, 3)] string[] replyLines =
+        {
+            "...",
+            "O que foi, o gato comeu a sua... ah, esquece.",
+        };
+        [Tooltip("Where the spirit hovers to talk about the fall, from the ceiling opening (or from above the player without one).")]
+        [SerializeField] Vector2 openingTalkOffset = new(0f, -2.5f);
+        [Tooltip("The spirit's lines up by the ceiling opening; the cutscene ends after the last one.")]
+        [SerializeField, TextArea(1, 3)] string[] fallLines =
+        {
+            "Mas minha nossa, foi uma queda e tanto, estou surpreso de você estar inteiro.",
+            "Mas é como dizem, gatos têm 9 vidas, não é mesmo?",
+        };
+
         [Header("After the Intro")]
-        [Tooltip("Seconds the spirit gets to settle beside the player before the camera zooms out.")]
+        [Tooltip("Seconds the spirit gets to head to its place before the camera zooms out.")]
         [SerializeField, Min(0f)] float pauseBeforeZoomOut = 0.4f;
         [SerializeField, Min(0f)] float zoomOutDuration = 1.2f;
         [SerializeField] Ease zoomOutEase = Ease.InOutSine;
@@ -130,228 +138,109 @@ namespace APX.Cutscenes
         [SerializeField] bool controlDuringZoomOut;
         [Tooltip("Keep the spirit as the hint companion beside the player afterwards (through the MaskManager).")]
         [SerializeField] bool summonCompanion = true;
-        [Tooltip("Seconds after control returns before On Finished fires.")]
-        [SerializeField, Min(0f)] float finishedEventDelay = 0.6f;
-        [Tooltip("Extra actions once the intro has played through.")]
-        [SerializeField] UnityEvent onFinished = new();
-
-        IRespawnTransition _transition;
-        PlayerAttack _attack;
-        Rigidbody2D _body;
-        Animator _animator;
-        Transform _sprite;
-        SpriteRenderer _spriteRenderer;
-        Vector3 _spriteRestPosition;
-        Coroutine _routine;
-        Coroutine _wanderRoutine;
-        Tween _tween;
-        Tween _spiritTween;
-        bool _landed;
-        bool _rumbling;
-
-        // Camera direction: the RoomCamera follows a proxy focus that eases towards the current shot.
-        Transform _cameraFocus;
-        Func<Vector2> _shot;
-        Func<float> _shotZoom;
-        float _shotMoveTime;
-        bool _directing;
-        bool _snapCamera;
-        Vector2 _viewCenter;
-        Vector2 _viewVelocity;
-        float _zoom = 1f;
-        float _zoomVelocity;
 
         // Spirit floating.
+        Coroutine _wander;
         Vector2 _wanderCenter;
         float _wanderPhase;
         float _wanderSpeed;
+        Vector2 _placedPosition;
 
-        public bool IsPlaying { get; private set; }
-
-        bool HasSpirit => companion != null;
-
-        void Awake()
+        protected override IEnumerator Perform(CutsceneContext c)
         {
-            if (player == null)
-                player = FindAnyObjectByType<PlayerController>();
-            if (roomCamera == null)
-                roomCamera = FindAnyObjectByType<RoomCamera>();
-            if (companion == null)
-                companion = FindAnyObjectByType<HintCompanion>();
-            if (maskManager == null)
-                maskManager = FindAnyObjectByType<MaskManager>();
-
-            _transition = openingTransition as IRespawnTransition ?? FindTransition();
-            _attack = player.GetComponent<PlayerAttack>();
-            _body = player.GetComponent<Rigidbody2D>();
-            _animator = player.GetComponentInChildren<Animator>();
-            _sprite = _animator.transform;
-            _spriteRenderer = _sprite.GetComponentInChildren<SpriteRenderer>();
-
-            _cameraFocus = new GameObject("IntroCameraFocus").transform;
-            _cameraFocus.SetParent(transform, false);
-        }
-
-        void OnValidate()
-        {
-            if (openingTransition != null && openingTransition is not IRespawnTransition)
-            {
-                Debug.LogWarning($"{openingTransition.name} does not implement {nameof(IRespawnTransition)}.", this);
-                openingTransition = null;
-            }
-        }
-
-        void OnEnable() => EventBus<PlayerDiedEvent>.Subscribe(OnPlayerDied);
-
-        void OnDisable()
-        {
-            EventBus<PlayerDiedEvent>.Unsubscribe(OnPlayerDied);
-            if (IsPlaying)
-                Abort();
-        }
-
-        void Start()
-        {
-            if (playOnStart)
-                Play();
-        }
-
-        void LateUpdate()
-        {
-            if (!_directing)
-                return;
-
-            // Eases the actual view centre (already kept inside the room), so moves stay smooth even where the
-            // camera presses against the room's edges.
-            float zoomTarget = _shotZoom?.Invoke() ?? introZoom;
-            Vector2 target = roomCamera.GetViewCenter(_shot(), zoomTarget);
-            if (_shotMoveTime <= 0f || _snapCamera)
-            {
-                _snapCamera = false;
-                _viewCenter = target;
-                _zoom = zoomTarget;
-                _viewVelocity = Vector2.zero;
-                _zoomVelocity = 0f;
-            }
-            else
-            {
-                _viewCenter = Vector2.SmoothDamp(_viewCenter, target, ref _viewVelocity, _shotMoveTime);
-                _zoom = Mathf.SmoothDamp(_zoom, zoomTarget, ref _zoomVelocity, _shotMoveTime);
-            }
-
-            _cameraFocus.position = _viewCenter;
-            roomCamera.SetZoom(_zoom, _cameraFocus);
-        }
-
-        public void Play()
-        {
-            if (IsPlaying)
-                return;
-
-            _routine = StartCoroutine(Run());
-        }
-
-        IEnumerator Run()
-        {
-            IsPlaying = true;
-            EventBus<CutsceneStartedEvent>.Raise(default);
-            player.Landed += OnLanded;
-            SetPlayerControl(false);
-            _spriteRestPosition = _sprite.localPosition;
+            CutscenePlayer player = c.Player;
+            CutsceneCompanion spirit = c.Companion;
 
             // The player waits off screen (or hidden) until their fall.
-            Vector2 fallStart = GetFallStart();
-            _body.simulated = false;
+            _placedPosition = player.Transform.position;
+            Vector2 fallStart = GetFallStart(_placedPosition);
+            player.SetPhysics(false);
             player.Teleport(fallStart);
-            _animator.Play(fallState, 0, 0f);
+            player.PlayAnimation(fallState);
             if (ceilingOpening == null)
-                _spriteRenderer.enabled = false;
+                player.SetVisible(false);
 
-            if (HasSpirit)
+            Func<Vector2> openingFocus = () => fallStart;
+            if (spirit.Exists)
             {
-                _wanderCenter = spiritAnchor != null ? (Vector2)spiritAnchor.position : RoomCenter();
+                _wanderCenter = spiritAnchor != null ? spiritAnchor.position : RoomCenter();
                 _wanderPhase = 0f;
                 _wanderSpeed = 1f;
-                companion.BeginScripted(_wanderCenter);
-                _wanderRoutine = StartCoroutine(Wander());
+                spirit.Take(_wanderCenter);
+                _wander = c.Run(Wander(spirit));
+                openingFocus = () => spirit.Transform.position;
             }
 
-            Transform spirit = HasSpirit ? companion.transform : null;
-            Func<Vector2> openingFocus = HasSpirit ? () => spirit.position : (Func<Vector2>)(() => fallStart);
-            StartDirecting(openingFocus, snap: true);
-            yield return OpenScreen(openingFocus);
+            c.Camera.Focus(openingFocus, introZoom, cameraMoveTime, snap: true);
+            yield return c.OpenFromBlack(blackScreenTime, openingFocus);
 
-            if (HasSpirit)
+            if (spirit.Exists)
             {
-                yield return new WaitForSeconds(wanderTime);
-                yield return Rumble();
+                yield return c.Wait(wanderTime);
+                yield return Rumble(c, spirit);
             }
 
             // To the opening, then drop.
             Vector2 dropPoint = ceilingOpening != null ? (Vector2)ceilingOpening.position : fallStart;
-            Shoot(() => dropPoint, cameraMoveTime);
-            yield return WaitForCamera();
-            yield return new WaitForSeconds(holdBeforeFall);
-            yield return Fall();
+            yield return c.Camera.FocusOn(dropPoint, introZoom, cameraMoveTime);
+            yield return c.Wait(holdBeforeFall);
+            yield return Fall(c);
 
-            _animator.Play(knockedOutState, 0, 0f);
-            yield return new WaitForSeconds(surpriseDelay);
-            if (HasSpirit)
-                yield return SpiritWakesPlayer();
+            player.PlayAnimation(knockedOutState);
+            yield return c.Wait(surpriseDelay);
+            if (spirit.Exists)
+                yield return SpiritWakesPlayer(c, spirit);
 
-            yield return Tremble(firstTrembleStrength, firstTrembleDuration);
-            yield return new WaitForSeconds(pauseBetweenTrembles);
-            yield return Tremble(quickTrembleStrength, quickTrembleDuration);
-            yield return new WaitForSeconds(quickTrembleGap);
-            yield return Tremble(quickTrembleStrength, quickTrembleDuration);
-            yield return new WaitForSeconds(pauseBeforeHop);
+            yield return player.Tremble(firstTrembleStrength, firstTrembleDuration);
+            yield return c.Wait(pauseBetweenTrembles);
+            yield return player.Tremble(quickTrembleStrength, quickTrembleDuration);
+            yield return c.Wait(quickTrembleGap);
+            yield return player.Tremble(quickTrembleStrength, quickTrembleDuration);
+            yield return c.Wait(pauseBeforeHop);
 
-            // Hop up; the regular jump/fall/land animations take it from here.
-            _landed = false;
-            player.Launch(new Vector2(0f, hopSpeed));
-            _animator.Play(jumpState, 0, 0f);
-            while (!_landed)
-                yield return null;
+            // Hop up (the regular jump/fall/land animations take it from here); the startled spirit backs off.
+            int head = player.FacingDirection;
+            player.Hop(hopSpeed);
+            player.PlayAnimation(jumpState);
+            if (spirit.Exists)
+                c.Run(spirit.MoveTo(spirit.Transform.position + new Vector3(spiritBackOff.x * head, spiritBackOff.y, 0f), backOffTime));
+            yield return player.WaitForLanding();
 
-            // The spirit takes its place beside the player.
-            if (HasSpirit)
+            if (spirit.Exists)
             {
-                companion.SetFacing(player.FacingDirection);
-                if (summonCompanion && maskManager != null)
-                    maskManager.SummonCompanion();
-                else
-                    companion.EndScripted();
-                yield return new WaitForSeconds(pauseBeforeZoomOut);
+                yield return Talk(c, spirit);
+
+                // The spirit heads off to its place (by the room's exit, if the room has a companion spot).
+                spirit.Release(summon: summonCompanion);
+                yield return c.Wait(pauseBeforeZoomOut);
             }
 
-            yield return ZoomOut();
-            Finish();
+            if (controlDuringZoomOut)
+                player.ReturnControl();
+            yield return c.Camera.Release(zoomOutDuration, zoomOutEase);
         }
 
-        IEnumerator OpenScreen(Func<Vector2> focus)
+        /// <summary>
+        /// As the intro leaves things: the player standing where the fall lands (under the ceiling opening, or at
+        /// their placed position without one) and the spirit at its place.
+        /// </summary>
+        protected override void OnSkipped(CutsceneContext c)
         {
-            if (_transition == null)
-                yield break;
-
-            _transition.Cover();
-
-            // Counted in capped steps: the first frames after loading can stall for most of a second and
-            // would otherwise swallow the black screen.
-            for (float black = 0f; black < blackScreenTime; black += Mathf.Min(Time.unscaledDeltaTime, MaxBlackStep))
-                yield return null;
-
-            yield return _transition.Open(focus);
+            CutscenePlayer player = c.Player;
+            if (ceilingOpening != null)
+                player.PlaceOnGround(ceilingOpening.position);
+            else
+                player.Teleport(_placedPosition);
+            player.PlayAnimation(idleState);
+            c.Companion.Release(summon: summonCompanion, snapToPlace: true);
         }
 
-        IEnumerator Rumble()
+        IEnumerator Rumble(CutsceneContext c, CutsceneCompanion spirit)
         {
-            Room room = RoomManager.CurrentRoom;
-            _rumbling = true;
-            EventBus<RumbleStartedEvent>.Raise(new RumbleStartedEvent(room != null ? room.Bounds : new Rect(_wanderCenter, Vector2.one)));
-
-            yield return new WaitForSeconds(Mathf.Min(puzzledDelay, rumbleDuration));
-            _tween = DOVirtual.Float(_wanderSpeed, 0f, spiritStopTime, speed => _wanderSpeed = speed).SetEase(Ease.OutQuad).SetLink(gameObject);
-            companion.ShowEmote(Emote.Question);
+            c.StartRumble();
+            yield return c.Wait(Mathf.Min(puzzledDelay, rumbleDuration));
+            c.Track(DOVirtual.Float(_wanderSpeed, 0f, spiritStopTime, speed => _wanderSpeed = speed).SetEase(Ease.OutQuad));
+            spirit.Emote(Emote.Question);
 
             // Glances left and right while the room shakes.
             float remaining = rumbleDuration - puzzledDelay;
@@ -359,200 +248,113 @@ namespace APX.Cutscenes
             while (remaining > 0f)
             {
                 float step = lookAroundInterval > 0f ? Mathf.Min(lookAroundInterval, remaining) : remaining;
-                yield return new WaitForSeconds(step);
+                yield return c.Wait(step);
                 remaining -= step;
                 if (lookAroundInterval > 0f && remaining > 0f)
                 {
-                    companion.SetFacing(look);
+                    spirit.Face(look);
                     look = -look;
                 }
             }
 
-            StopRumble();
-            yield return new WaitForSeconds(pauseAfterRumble);
-            companion.HideEmote();
-            StopWandering();
+            c.StopRumble();
+            yield return c.Wait(pauseAfterRumble);
+            spirit.HideEmote();
+            c.Stop(_wander);
         }
 
-        IEnumerator Fall()
+        IEnumerator Fall(CutsceneContext c)
         {
-            _landed = false;
-            _spriteRenderer.enabled = true;
-            _body.simulated = true;
+            CutscenePlayer player = c.Player;
+            int landings = player.LandingCount;
+            player.SetVisible(true);
+            player.SetPhysics(true);
 
             // The camera holds on the opening until the player drops past it, then follows them down.
             if (ceilingOpening != null)
             {
-                while (player.transform.position.y > ceilingOpening.position.y && !_landed)
+                while (player.Transform.position.y > ceilingOpening.position.y && player.LandingCount == landings)
                     yield return null;
             }
 
-            Shoot(() => player.transform.position, 0f);
-            while (!_landed)
+            c.Camera.Focus(player.Transform, introZoom, 0f);
+            while (player.LandingCount == landings)
                 yield return null;
         }
 
-        IEnumerator SpiritWakesPlayer()
+        IEnumerator SpiritWakesPlayer(CutsceneContext c, CutsceneCompanion spirit)
         {
-            Transform spirit = companion.transform;
+            CutscenePlayer player = c.Player;
             int head = player.FacingDirection;
-            Func<Vector2> playerCenter = () => player.transform.position;
 
             // Both in view while the spirit notices and flies over; the "!" waits for the camera to get there.
-            Shoot(() => (playerCenter() + (Vector2)spirit.position) * 0.5f, cameraMoveTime, () => FitZoom(spirit.position, playerCenter()));
-            yield return WaitForCamera();
-            companion.SetFacing(playerCenter().x < spirit.position.x ? -1 : 1);
-            companion.ShowEmote(Emote.Exclamation);
-            yield return new WaitForSeconds(surpriseTime);
-            companion.HideEmote();
+            c.Camera.FocusOnBoth(spirit.Transform, player.Transform, twoShotMargin, introZoom, cameraMoveTime);
+            yield return c.Camera.WaitForCamera();
+            spirit.FaceTowards(player.Transform.position.x);
+            spirit.Emote(Emote.Exclamation);
+            yield return c.Wait(surpriseTime);
+            spirit.HideEmote();
 
-            Vector3 spot = player.transform.position + new Vector3(nudgeSpot.x * head, nudgeSpot.y, 0f);
-            float flight = Mathf.Max(0.4f, Vector2.Distance(spirit.position, spot) / spiritSpeed);
-            companion.SetFacing(spot.x < spirit.position.x ? -1 : 1);
-            _spiritTween = spirit.DOMove(spot, flight).SetEase(Ease.InOutSine).SetLink(gameObject);
-            yield return _spiritTween.WaitForCompletion();
-            companion.SetFacing(-head);
+            Vector3 spot = player.Transform.position + new Vector3(nudgeSpot.x * head, nudgeSpot.y, 0f);
+            yield return spirit.FlyTo(spot, spiritSpeed);
+            spirit.Face(-head);
 
             // Once, a pause, then twice in quick succession.
-            yield return Nudge(-head);
-            yield return new WaitForSeconds(pauseAfterFirstNudge);
-            yield return Nudge(-head);
-            yield return new WaitForSeconds(quickNudgeGap);
-            yield return Nudge(-head);
-            yield return new WaitForSeconds(pauseBeforeTremble);
+            yield return Nudge(c, spirit, -head);
+            yield return c.Wait(pauseAfterFirstNudge);
+            yield return Nudge(c, spirit, -head);
+            yield return c.Wait(quickNudgeGap);
+            yield return Nudge(c, spirit, -head);
+            yield return c.Wait(pauseBeforeTremble);
+        }
+
+        /// <summary>
+        /// The spirit asks if the player is all right; they can only answer with a sound and a face, so it gives up
+        /// and flies up to the opening they fell through to marvel at the fall.
+        /// </summary>
+        IEnumerator Talk(CutsceneContext c, CutsceneCompanion spirit)
+        {
+            CutscenePlayer player = c.Player;
+            yield return c.Wait(pauseBeforeTalking);
+            spirit.FaceTowards(player.Transform.position.x);
+            yield return spirit.Say(askLine);
+
+            c.PlaySound(reactionSound);
+            yield return player.ShowSprite(reactionSprite, reactionTime);
+            yield return spirit.Say(replyLines);
+
+            // The camera keeps both in view, so it widens as the spirit rises.
+            Vector3 above = ceilingOpening != null ? ceilingOpening.position : player.Transform.position + Vector3.up * 6f;
+            yield return spirit.FlyTo(above + (Vector3)openingTalkOffset, spiritSpeed);
+            spirit.FaceTowards(player.Transform.position.x);
+            yield return spirit.Say(fallLines);
         }
 
         /// <summary>The spirit bumps into the player (towards <paramref name="direction"/>) and backs off.</summary>
-        IEnumerator Nudge(int direction)
+        IEnumerator Nudge(CutsceneContext c, CutsceneCompanion spirit, int direction)
         {
-            Transform spirit = companion.transform;
-            Vector3 rest = spirit.position;
+            Transform transform = spirit.Transform;
+            Vector3 rest = transform.position;
             Vector3 bump = rest + new Vector3(nudgeDistance * direction, 0f, 0f);
-            _spiritTween = DOTween.Sequence()
-                .Append(spirit.DOMove(bump, nudgeInTime).SetEase(Ease.InQuad))
-                .AppendCallback(() => PushPlayerSprite(direction))
-                .Append(spirit.DOMove(rest, nudgeOutTime).SetEase(Ease.OutQuad))
-                .SetLink(gameObject);
-            yield return _spiritTween.WaitForCompletion();
+            yield return c.Play(DOTween.Sequence()
+                .Append(transform.DOMove(bump, nudgeInTime).SetEase(Ease.InQuad))
+                .AppendCallback(() => c.Player.Push(direction, nudgePush))
+                .Append(transform.DOMove(rest, nudgeOutTime).SetEase(Ease.OutQuad)));
         }
 
-        void PushPlayerSprite(int direction)
-        {
-            _tween?.Kill();
-            _sprite.localPosition = _spriteRestPosition;
-
-            // The punch is in local space, which is mirrored while the player faces left.
-            float mirror = _sprite.parent != null && _sprite.parent.lossyScale.x < 0f ? -1f : 1f;
-            _tween = _sprite.DOPunchPosition(new Vector3(nudgePush * direction * mirror, 0f, 0f), 0.2f, vibrato: 4, elasticity: 0.5f)
-                .OnComplete(() => _sprite.localPosition = _spriteRestPosition)
-                .SetLink(gameObject);
-        }
-
-        IEnumerator Tremble(float strength, float duration)
-        {
-            if (strength <= 0f || duration <= 0f)
-                yield break;
-
-            _tween?.Kill();
-            _sprite.localPosition = _spriteRestPosition;
-            _tween = _sprite.DOShakePosition(duration, new Vector3(strength, 0f, 0f), vibrato: 25, randomness: 0f, snapping: false, fadeOut: true)
-                .SetLink(gameObject);
-            yield return _tween.WaitForCompletion();
-            _sprite.localPosition = _spriteRestPosition;
-        }
-
-        IEnumerator ZoomOut()
-        {
-            // From wherever the camera is now out to the whole room.
-            _directing = false;
-            _cameraFocus.position = _viewCenter;
-            if (controlDuringZoomOut)
-                SetPlayerControl(true);
-
-            _tween = DOVirtual.Float(_zoom, 1f, zoomOutDuration, zoom => roomCamera.SetZoom(zoom, _cameraFocus))
-                .SetEase(zoomOutEase)
-                .SetLink(gameObject);
-            yield return _tween.WaitForCompletion();
-        }
-
-        IEnumerator Wander()
+        IEnumerator Wander(CutsceneCompanion spirit)
         {
             while (true)
             {
-                float delta = Time.deltaTime * _wanderSpeed * 2f * Mathf.PI / wanderPeriod;
-                _wanderPhase += delta;
-                companion.transform.position = _wanderCenter + new Vector2(
+                _wanderPhase += Time.deltaTime * _wanderSpeed * 2f * Mathf.PI / wanderPeriod;
+                spirit.Transform.position = _wanderCenter + new Vector2(
                     Mathf.Sin(_wanderPhase) * wanderSize.x,
                     Mathf.Sin(_wanderPhase * 2f) * wanderSize.y);
 
                 if (_wanderSpeed > 0.2f)
-                    companion.SetFacing(Mathf.Cos(_wanderPhase) >= 0f ? 1 : -1);
+                    spirit.Face(Mathf.Cos(_wanderPhase) >= 0f ? 1 : -1);
                 yield return null;
             }
-        }
-
-        void StopWandering()
-        {
-            if (_wanderRoutine != null)
-                StopCoroutine(_wanderRoutine);
-            _wanderRoutine = null;
-        }
-
-        void StopRumble()
-        {
-            if (!_rumbling)
-                return;
-
-            _rumbling = false;
-            EventBus<RumbleStoppedEvent>.Raise(default);
-        }
-
-        void StartDirecting(Func<Vector2> shot, bool snap)
-        {
-            _directing = true;
-            Shoot(shot, cameraMoveTime);
-            if (!snap)
-                return;
-
-            // The room camera may not know its room yet, so the first directed frame snaps again.
-            _snapCamera = true;
-            _zoom = introZoom;
-            _viewCenter = roomCamera.GetViewCenter(shot(), introZoom);
-            _viewVelocity = Vector2.zero;
-            _zoomVelocity = 0f;
-            _cameraFocus.position = _viewCenter;
-            roomCamera.SetZoom(_zoom, _cameraFocus);
-        }
-
-        void Shoot(Func<Vector2> shot, float moveTime, Func<float> zoom = null)
-        {
-            _shot = shot;
-            _shotMoveTime = moveTime;
-            _shotZoom = zoom;
-        }
-
-        IEnumerator WaitForCamera()
-        {
-            for (float waited = 0f; waited < CameraTimeout; waited += Time.deltaTime)
-            {
-                float zoomTarget = _shotZoom?.Invoke() ?? introZoom;
-                Vector2 target = roomCamera.GetViewCenter(_shot(), zoomTarget);
-                if (Vector2.Distance(_viewCenter, target) < CameraArrivedDistance && Mathf.Abs(_zoom - zoomTarget) < 0.01f)
-                    yield break;
-                yield return null;
-            }
-        }
-
-        /// <summary>Zoom that keeps both points in view with some margin, never wider than the room.</summary>
-        float FitZoom(Vector2 a, Vector2 b)
-        {
-            Room room = RoomManager.CurrentRoom;
-            if (room == null)
-                return introZoom;
-
-            Vector2 span = new(Mathf.Abs(a.x - b.x) + twoShotMargin.x * 2f, Mathf.Abs(a.y - b.y) + twoShotMargin.y * 2f);
-            float zoom = Mathf.Min(room.Size.x / span.x, room.Size.y / span.y);
-            return Mathf.Clamp(zoom, 1f, introZoom);
         }
 
         static Vector2 RoomCenter() => RoomManager.CurrentRoom != null ? RoomManager.CurrentRoom.Center : Vector2.zero;
@@ -561,7 +363,7 @@ namespace APX.Cutscenes
         /// Start of the fall: just above the top of the room over the ceiling opening (off screen); or, without
         /// one, above the placed position but inside the room.
         /// </summary>
-        Vector2 GetFallStart()
+        Vector2 GetFallStart(Vector2 placedPosition)
         {
             Room room = RoomManager.CurrentRoom;
             if (ceilingOpening != null)
@@ -571,87 +373,10 @@ namespace APX.Cutscenes
                 return new Vector2(ceilingOpening.position.x, top + offscreenMargin);
             }
 
-            Vector2 start = (Vector2)player.transform.position + Vector2.up * fallHeight;
+            Vector2 start = placedPosition + Vector2.up * fallHeight;
             if (room != null)
                 start.y = Mathf.Min(start.y, room.Bounds.yMax - 1.5f);
             return start;
-        }
-
-        void OnLanded(float impactSpeed) => _landed = true;
-
-        void Finish()
-        {
-            Cleanup();
-            SetPlayerControl(true);
-            StartCoroutine(InvokeFinishedAfterDelay());
-        }
-
-        IEnumerator InvokeFinishedAfterDelay()
-        {
-            if (finishedEventDelay > 0f)
-                yield return new WaitForSeconds(finishedEventDelay);
-
-            onFinished.Invoke();
-        }
-
-        /// <summary>Stops early, e.g. if the player died mid-cutscene (the respawn restores control).</summary>
-        void Abort()
-        {
-            if (_routine != null)
-                StopCoroutine(_routine);
-
-            // Also runs while the scene unloads, when the player may already be gone.
-            if (_body != null)
-                _body.simulated = true;
-            if (_spriteRenderer != null)
-                _spriteRenderer.enabled = true;
-            if (_sprite != null)
-                _sprite.localPosition = _spriteRestPosition;
-            if (companion != null)
-                companion.EndScripted();
-            Cleanup();
-        }
-
-        void Cleanup()
-        {
-            _routine = null;
-            StopWandering();
-            StopRumble();
-            _tween?.Kill();
-            _tween = null;
-            _spiritTween?.Kill();
-            _spiritTween = null;
-            _directing = false;
-            if (player != null)
-                player.Landed -= OnLanded;
-            if (roomCamera != null)
-                roomCamera.SetZoom(1f);
-            IsPlaying = false;
-            EventBus<CutsceneEndedEvent>.Raise(default);
-        }
-
-        void SetPlayerControl(bool hasControl)
-        {
-            player.SetControl(hasControl);
-            if (_attack != null)
-                _attack.enabled = hasControl;
-        }
-
-        void OnPlayerDied(PlayerDiedEvent evt)
-        {
-            if (IsPlaying)
-                Abort();
-        }
-
-        static IRespawnTransition FindTransition()
-        {
-            foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude))
-            {
-                if (behaviour is IRespawnTransition transition)
-                    return transition;
-            }
-
-            return null;
         }
     }
 }

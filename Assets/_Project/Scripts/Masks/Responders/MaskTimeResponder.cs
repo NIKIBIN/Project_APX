@@ -8,8 +8,10 @@ namespace APX.Masks
     /// <see cref="ITimeScaleSource"/>. By default: slow while "Nice and Slow" is worn, accelerated by
     /// the curse otherwise. Put it on a single object or on a parent to drive a whole group.
     /// The player never has one, so it always acts in real time.
+    /// Tuning rule: author timings (at scale 1) so the gap the player needs is about the time a crossing takes.
+    /// Cursed, the gap shrinks below that; with the mask it grows well above it, so only the mask gets through.
     /// </summary>
-    public sealed class MaskTimeResponder : MaskResponder, ITimeScaleSource
+    public sealed class MaskTimeResponder : MaskResponder, ITimeScaleSource, ITimeScaleRange
     {
         [Tooltip("Time scale while the condition is met (mask worn).")]
         [SerializeField, Min(0f)] float scaleWhenMet = 0.5f;
@@ -22,6 +24,10 @@ namespace APX.Masks
         ParticleSystem[] _particles;
 
         public float TimeScale { get; private set; } = 1f;
+
+        public float MinTimeScale => Mathf.Min(scaleWhenMet, scaleWhenNotMet);
+
+        public float MaxTimeScale => Mathf.Max(scaleWhenMet, scaleWhenNotMet);
 
         void Reset() => SetDefaultMask(MaskType.NiceAndSlow);
 

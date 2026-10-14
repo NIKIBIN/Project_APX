@@ -75,6 +75,10 @@ namespace APX.Feel
         [Tooltip("Magical sparkles when a mask appears, swaps or comes off: half tinted with the mask colour, half white.")]
         [SerializeField, Min(0)] int maskBurstParticles = 24;
         [SerializeField, Range(0f, 1f)] float maskBurstTrauma = 0.08f;
+        [Tooltip("Picking a new mask up: a freeze and a bigger burst, so the moment lands.")]
+        [SerializeField, Min(0f)] float maskPickupStop = 0.15f;
+        [SerializeField, Min(0)] int maskPickupParticles = 48;
+        [SerializeField, Range(0f, 1f)] float maskPickupTrauma = 0.25f;
 
         bool _isRumbling;
         float _rumbleTime;
@@ -102,6 +106,7 @@ namespace APX.Feel
             EventBus<RumbleStartedEvent>.Subscribe(OnRumbleStarted);
             EventBus<RumbleStoppedEvent>.Subscribe(OnRumbleStopped);
             EventBus<MaskBurstEvent>.Subscribe(OnMaskBurst);
+            EventBus<MaskPickedUpEvent>.Subscribe(OnMaskPickedUp);
         }
 
         void OnDisable()
@@ -116,6 +121,7 @@ namespace APX.Feel
             EventBus<DoorSlammedEvent>.Unsubscribe(OnDoorSlammed);
             EventBus<SpikeTrapPoppedEvent>.Unsubscribe(OnSpikeTrapPopped);
             EventBus<MaskBurstEvent>.Unsubscribe(OnMaskBurst);
+            EventBus<MaskPickedUpEvent>.Unsubscribe(OnMaskPickedUp);
             EventBus<RumbleStartedEvent>.Unsubscribe(OnRumbleStarted);
             EventBus<RumbleStoppedEvent>.Unsubscribe(OnRumbleStopped);
             OnRumbleStopped(default);
@@ -211,6 +217,18 @@ namespace APX.Feel
             int tinted = maskBurstParticles / 2;
             magic.Play(evt.Position, tinted, evt.Color);
             magic.Play(evt.Position, maskBurstParticles - tinted, Color.white);
+        }
+
+        void OnMaskPickedUp(MaskPickedUpEvent evt)
+        {
+            GameTime.Pulse(0f, maskPickupStop);
+            Shake(maskPickupTrauma);
+            if (magic == null)
+                return;
+
+            int tinted = maskPickupParticles / 2;
+            magic.Play(evt.Position, tinted, evt.Color);
+            magic.Play(evt.Position, maskPickupParticles - tinted, Color.white);
         }
 
         void Shake(float trauma)

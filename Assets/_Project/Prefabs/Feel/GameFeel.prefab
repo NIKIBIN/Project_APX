@@ -14097,6 +14097,11 @@ GameObject:
   - component: {fileID: 7118575677131822862}
   - component: {fileID: 7086472368368584302}
   - component: {fileID: 5394162051975965085}
+  - component: {fileID: 2246541119589629971}
+  - component: {fileID: 1023200100381934237}
+  - component: {fileID: 16283420523230179}
+  - component: {fileID: 6863338883781764873}
+  - component: {fileID: 2506938847468788936}
   m_Layer: 0
   m_Name: GameFeel
   m_TagString: Untagged
@@ -14171,6 +14176,9 @@ MonoBehaviour:
   spikeTrauma: 0.06
   maskBurstParticles: 24
   maskBurstTrauma: 0.08
+  maskPickupStop: 0.15
+  maskPickupParticles: 48
+  maskPickupTrauma: 0.25
 --- !u!114 &5394162051975965085
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14187,6 +14195,98 @@ MonoBehaviour:
   strength: 1
   clearingMask: 3
   fadeDuration: 0.35
+--- !u!114 &2246541119589629971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892622373733055834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cb4072ea77e18a45af223b5f83ebd31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Feel.SpriteGhosts
+  material: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+--- !u!114 &1023200100381934237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892622373733055834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7662f2bd0441cde4f810ec58a575de63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Feel.MaskChangePing
+  maskManager: {fileID: 0}
+  duration: 0.45
+  endScale: 1.3
+  alpha: 0.85
+  maxGhosts: 160
+  chime: {fileID: 0}
+  chimeVolume: 0.35
+--- !u!114 &16283420523230179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892622373733055834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2ec19481c69a5c4fa5e3713a71d4d15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Feel.KillerReveal
+  maskManager: {fileID: 0}
+  tileReach: 0.5
+  tileAlpha: 0.9
+  pingDuration: 0.5
+  pingScale: 1.4
+--- !u!114 &6863338883781764873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892622373733055834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f5155df0fa06a1499452b2945a1c0a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Feel.MaskTimeAfterimages
+  maskManager: {fileID: 0}
+  interval: 0.07
+  lifetime: 0.3
+  alpha: 0.45
+  minMove: 0.08
+  minTurn: 15
+--- !u!114 &2506938847468788936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892622373733055834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c14bc996282436542a90c3b9d2819243, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: APX.Runtime::APX.Feel.DeathMarker
+  barSprite: {fileID: 21300000, guid: a936c7960ac2f9b46bbd2d38b803075c, type: 3}
+  material: {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  color: {r: 1, g: 1, b: 1, a: 0.5}
+  size: 0.4
+  thickness: 0.08
+  sortingOrder: 1
+  maxMarkers: 30
+  popDuration: 0.35
+  popEase: 27
+  popStagger: 0.05
+  maxStaggerTotal: 0.5
+  visibleDuration: 2.5
+  fadeOutDuration: 0.5
 --- !u!1 &8311217705065651444
 GameObject:
   m_ObjectHideFlags: 0

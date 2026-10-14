@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -14,6 +15,10 @@ namespace APX.Masks
 
         Renderer[] _renderers;
         float[] _visibleAlphas;
+        bool _isRevealed;
+
+        /// <summary>The renderers this responder shows and hides.</summary>
+        public IReadOnlyList<Renderer> Renderers => _renderers;
 
         void Awake()
         {
@@ -23,8 +28,22 @@ namespace APX.Masks
                 _visibleAlphas[i] = TryGetAlpha(_renderers[i], out float alpha) ? alpha : 1f;
         }
 
+        /// <summary>
+        /// Shows the renderers whatever mask is worn (e.g. to show the player what just killed them), until called
+        /// with false.
+        /// </summary>
+        public void SetRevealed(bool revealed)
+        {
+            if (_isRevealed == revealed)
+                return;
+
+            _isRevealed = revealed;
+            Apply(IsConditionMet);
+        }
+
         protected override void Apply(bool conditionMet)
         {
+            conditionMet |= _isRevealed;
             for (int i = 0; i < _renderers.Length; i++)
             {
                 Renderer target = _renderers[i];

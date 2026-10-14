@@ -280,8 +280,9 @@ MonoBehaviour:
   startsOn: 0
   oneShot: 1
   indicator: {fileID: 1711135892514846227}
-  offColor: {r: 0.85, g: 0.3, b: 0.3, a: 1}
-  onColor: {r: 0.35, g: 0.9, b: 0.45, a: 1}
+  offColor: {r: 0.45, g: 0.47, b: 0.55, a: 1}
+  onColor: {r: 0.92, g: 0.97, b: 1, a: 1}
+  onScale: 1.25
   onSwitchedOn:
     m_PersistentCalls:
       m_Calls: []

@@ -8,6 +8,8 @@ namespace APX.Level
     /// Spikes hidden under the floor that shoot up when their <see cref="SpikeTrapGroup"/> strikes, then sink back.
     /// Place the transform on the floor surface, centred on the trap. A sprite mask clips the spikes at the surface,
     /// and the hurtbox only hurts while they are out. In edit mode the spikes are drawn up so the trap can be seen.
+    /// A "Segundo canal" hazard: the optional floor marking (with a MaskVisibilityResponder) shows where the trap is,
+    /// and the danger sense times it. No mask changes its rhythm.
     /// </summary>
     public sealed class SpikeTrap : MonoBehaviour, IResettable
     {
@@ -26,6 +28,10 @@ namespace APX.Level
         [SerializeField] SpriteMask clip;
         [Tooltip("Trigger with a DamageOnContact, enabled while the spikes are out.")]
         [SerializeField] BoxCollider2D hurtbox;
+        [Tooltip("Optional floor marking stretched over the trap's width, centred on the surface. Give it a " +
+                 "MaskVisibilityResponder so only the right mask reveals where the trap is.")]
+        [SerializeField] SpriteRenderer marker;
+        [SerializeField, Min(0.01f)] float markerThickness = 0.14f;
 
         SpikeTrapGroup _group;
         float _shownExtension = -1f;
@@ -119,6 +125,13 @@ namespace APX.Level
                 hurtbox.isTrigger = true;
                 hurtbox.offset = new Vector2(0f, SpikeHeight * 0.4f);
                 hurtbox.size = new Vector2(Mathf.Max(0.1f, width - 0.1f), SpikeHeight * 0.8f);
+            }
+
+            if (marker != null && marker.sprite != null)
+            {
+                Vector2 spriteSize = marker.sprite.bounds.size;
+                marker.transform.localPosition = Vector3.zero;
+                marker.transform.localScale = new Vector3(width / spriteSize.x, markerThickness / spriteSize.y, 1f);
             }
         }
 

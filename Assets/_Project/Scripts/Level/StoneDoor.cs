@@ -10,6 +10,8 @@ namespace APX.Level
     /// Heavy stone door opened by a <see cref="HitSwitch"/>: it rumbles, slowly grinds open, stays open for a
     /// while, then drops shut and switches its trigger off so the player has to hit it again. Hitting the switch
     /// while the door is dropping sends it back up. The cycle runs on local time, so "Nice and Slow" stretches it.
+    /// Set <see cref="requiredRunTime"/> to make the door a Nice and Slow puzzle: the timings are then fitted so
+    /// the run only fits in the open window while the mask is worn (selecting the door shows both windows).
     /// The pivot is the bottom cell, so the GameObject Brush paints it standing on the floor.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
@@ -41,6 +43,13 @@ namespace APX.Level
         [SerializeField, Min(0f)] float closeDuration = 0.6f;
         [SerializeField] Ease closeEase = Ease.InQuad;
 
+        [Header("Puzzle Timing")]
+        [Tooltip("Real seconds a player needs, at full speed on the best route, from hitting the trigger to being " +
+                 "past the door. Above 0, the rumbles, the opening and the stay are scaled together (keeping their " +
+                 "proportions) so the door drops too early without Nice and Slow and late enough with it, by the " +
+                 "same ratio either way. 0 = use the durations as authored.")]
+        [SerializeField, Min(0f)] float requiredRunTime;
+
         [Header("Shake")]
         [Tooltip("Child that shakes. Only the visuals shake; the collider moves smoothly.")]
         [SerializeField] Transform visual;
@@ -71,10 +80,14 @@ namespace APX.Level
         Vector2 _closedPosition;
         Vector3 _visualRestPosition;
         float _openAmount;
+        float _timingScale = 1f;
         DoorState _state;
         Sequence _cycle;
 
         public bool IsClosed => _state == DoorState.Closed;
+
+        /// <summary>Local seconds from the hit until the door starts dropping (both rumbles, opening and stay), as authored.</summary>
+        float AuthoredOpenWindow => rumbleDuration * 2f + openDuration + stayOpenDuration;
 
         void Awake()
         {
@@ -82,6 +95,7 @@ namespace APX.Level
             _body.bodyType = RigidbodyType2D.Kinematic;
             _collider = GetComponent<BoxCollider2D>();
             _timeSource = GetComponentInParent<ITimeScaleSource>(true);
+            _timingScale = GetTimingScale(_timeSource as ITimeScaleRange);
             _closedPosition = transform.position;
             if (visual != null)
                 _visualRestPosition = visual.localPosition;
@@ -123,15 +137,16 @@ namespace APX.Level
             EventBus<DoorRumbledEvent>.Raise(new DoorRumbledEvent(GetContactPoint(), _collider.bounds.size.x));
 
             // Reopening mid-drop only travels the remaining distance, at the same speed.
-            float travelDuration = openDuration * (1f - _openAmount);
+            float rumble = rumbleDuration * _timingScale;
+            float travelDuration = openDuration * _timingScale * (1f - _openAmount);
             _cycle = DOTween.Sequence()
-                .Append(Shake(rumbleDuration, rumbleStrength))
+                .Append(Shake(rumble, rumbleStrength))
                 .Append(TweenOpenAmount(1f, travelDuration, openEase))
                 .Join(Shake(travelDuration, grindStrength))
                 .AppendCallback(() => _state = DoorState.Open)
-                .AppendInterval(stayOpenDuration)
+                .AppendInterval(stayOpenDuration * _timingScale)
                 .AppendCallback(BeginClosing)
-                .Append(Shake(rumbleDuration, rumbleStrength))
+                .Append(Shake(rumble, rumbleStrength))
                 .Append(TweenOpenAmount(0f, closeDuration, closeEase))
                 .AppendCallback(FinishClosing)
                 .Append(Shake(impactDuration, impactStrength))
@@ -179,6 +194,20 @@ namespace APX.Level
 
             Vector2 closeDirection = -openOffset.normalized;
             return center + Vector2.Scale(closeDirection, bounds.extents);
+        }
+
+        /// <summary>
+        /// Scale for the rumble, open and stay durations that puts <see cref="requiredRunTime"/> in the middle of the
+        /// open windows (geometric mean): at the fastest time scale the window ends before the run does, at the
+        /// slowest it ends after, by the same ratio. 1 when not fitting.
+        /// </summary>
+        float GetTimingScale(ITimeScaleRange range)
+        {
+            if (requiredRunTime <= 0f || range == null || range.MinTimeScale <= 0f || AuthoredOpenWindow <= 0f)
+                return 1f;
+
+            float localWindow = requiredRunTime * Mathf.Sqrt(range.MinTimeScale * range.MaxTimeScale);
+            return localWindow / AuthoredOpenWindow;
         }
 
         void StopCycle()
@@ -242,6 +271,23 @@ namespace APX.Level
             Vector2 closed = Application.isPlaying ? _closedPosition : (Vector2)transform.position;
             Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.8f);
             Gizmos.DrawWireCube(closed + openOffset + box.offset, box.size);
+
+#if UNITY_EDITOR
+            // Real seconds from the hit until the door drops, at both ends of its time scale.
+            if (GetComponentInParent<ITimeScaleSource>(true) is not ITimeScaleRange range || range.MinTimeScale <= 0f)
+                return;
+
+            float window = AuthoredOpenWindow * GetTimingScale(range);
+            string run = requiredRunTime > 0f ? $"\nrun: {requiredRunTime:0.0#} s" : "\n(no run time set)";
+            UnityEditor.Handles.Label(closed + openOffset + box.offset + Vector2.up * (box.size.y * 0.5f + 0.5f),
+                $"drops after {window / range.MaxTimeScale:0.0#} s (cursed)\n{window / range.MinTimeScale:0.0#} s (Nice and Slow){run}");
+#endif
+        }
+
+        void OnValidate()
+        {
+            if (requiredRunTime > 0f && GetComponentInParent<ITimeScaleSource>(true) is not ITimeScaleRange)
+                Debug.LogWarning($"{name}: a required run time needs a MaskTimeResponder on the door (or a parent).", this);
         }
     }
 }

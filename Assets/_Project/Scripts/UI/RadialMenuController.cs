@@ -2,6 +2,7 @@ using APX.Core;
 using APX.Cutscenes;
 using APX.Masks;
 using APX.Player;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -17,9 +18,13 @@ namespace APX.UI
     }
 
     /// <summary>
-    /// Hold-to-open radial mask selector (UI Toolkit). While held, time slows down and a virtual cursor
-    /// appears at the screen centre; dragging up/right/down/left highlights a slot and releasing confirms.
+    /// Hold-to-open radial mask selector (UI Toolkit). While held, time slows down, the world greys out (unlike Nice
+    /// and Slow, which only slows the world) and a virtual cursor appears at the screen centre; dragging
+    /// up/right/down/left highlights a slot and releasing confirms.
     /// The cursor is driven by pointer delta (or the right stick) so it behaves the same on desktop and WebGL.
+    /// Masks the player hasn't picked up yet keep their slot as a silhouette that can't be chosen, and the menu
+    /// doesn't open until there is a first mask. After a pickup, the menu's button pulses over the player until
+    /// the menu is opened.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class RadialMenuController : MonoBehaviour
@@ -28,6 +33,9 @@ namespace APX.UI
         const string HiddenClass = "radial-overlay--hidden";
         const string HoveredClass = "radial-slot--hovered";
         const string EquippedClass = "radial-slot--equipped";
+        const string LockedClass = "radial-slot--locked";
+
+        static readonly int MenuFocusId = Shader.PropertyToID("_APX_MenuFocus");
 
         // Indexed by RadialDirection, in panel space (+y is down).
         static readonly Vector2[] s_slotDirections = { Vector2.down, Vector2.right, Vector2.up, Vector2.left };
@@ -45,6 +53,9 @@ namespace APX.UI
 
         [Header("Slow Motion")]
         [SerializeField, Range(0.01f, 1f)] float slowMotionScale = 0.2f;
+        [Tooltip("Real seconds for the world to grey out (and back) as the menu opens and closes, so the menu's slow " +
+                 "motion reads differently from Nice and Slow. Drawn by the APX/Color Blindness full-screen pass.")]
+        [SerializeField, Min(0f)] float focusFadeDuration = 0.12f;
 
         [Header("Selection")]
         [Tooltip("Maximum virtual cursor distance from the centre, in panel pixels.")]
@@ -57,6 +68,15 @@ namespace APX.UI
         [Header("Text")]
         [SerializeField] string idleTitleFormat = "Usando: {0}";
         [SerializeField] string idleDescription = "Arraste o mouse e solte o Tab para escolher.";
+        [Tooltip("Slot label and title for a mask the player hasn't found yet.")]
+        [SerializeField] string lockedTitle = "???";
+        [SerializeField] string lockedDescription = "Você ainda não encontrou esta máscara.";
+
+        [Header("Unlock Prompt")]
+        [Tooltip("After a mask is picked up, show the menu's button over the player until the menu is opened.")]
+        [SerializeField] bool promptOnUnlock = true;
+        [Tooltip("Input prompt token of the menu's button (see InputPromptIcons).")]
+        [SerializeField] string promptToken = "masks";
 
         [Header("Hardware Cursor")]
         [SerializeField] bool hideCursorDuringGameplay = true;
@@ -73,6 +93,9 @@ namespace APX.UI
         int _hoveredSlot = -1;
         bool _isPlayerDead;
         bool _isCutscenePlaying;
+        ButtonPromptView _unlockPrompt;
+        float _focus;
+        Tween _focusTween;
 
         public bool IsOpen { get; private set; }
 
@@ -98,6 +121,7 @@ namespace APX.UI
             EventBus<PlayerRespawnedEvent>.Subscribe(OnPlayerRespawned);
             EventBus<CutsceneStartedEvent>.Subscribe(OnCutsceneStarted);
             EventBus<CutsceneEndedEvent>.Subscribe(OnCutsceneEnded);
+            EventBus<MaskUnlockedEvent>.Subscribe(OnMaskUnlocked);
             SetCursorCaptured(false);
         }
 
@@ -109,8 +133,11 @@ namespace APX.UI
             EventBus<PlayerRespawnedEvent>.Unsubscribe(OnPlayerRespawned);
             EventBus<CutsceneStartedEvent>.Unsubscribe(OnCutsceneStarted);
             EventBus<CutsceneEndedEvent>.Unsubscribe(OnCutsceneEnded);
+            EventBus<MaskUnlockedEvent>.Unsubscribe(OnMaskUnlocked);
             _menu?.UnregisterCallback<GeometryChangedEvent>(OnMenuGeometryChanged);
             Close(confirm: false);
+            _focusTween?.Kill();
+            SetFocus(0f);
         }
 
         void Update()
@@ -124,12 +151,20 @@ namespace APX.UI
 
         void Open()
         {
-            if (IsOpen || maskManager == null || maskManager.IsTransitioning || _isPlayerDead || _isCutscenePlaying)
+            if (IsOpen || maskManager == null || maskManager.IsTransitioning || _isPlayerDead || _isCutscenePlaying
+                || !MaskManager.HasAnyMask)
                 return;
 
             IsOpen = true;
+            if (_unlockPrompt != null)
+            {
+                _unlockPrompt.Hide(pressed: true);
+                _unlockPrompt = null;
+            }
+
             _cursorOffset = Vector2.zero;
             GameTime.SetTimeScale(slowMotionScale);
+            FadeFocus(1f);
             input.SetAttackEnabled(false);
             SetCursorCaptured(true);
 
@@ -157,16 +192,31 @@ namespace APX.UI
 
         void OnCutsceneEnded(CutsceneEndedEvent evt) => _isCutscenePlaying = false;
 
+        void OnMaskUnlocked(MaskUnlockedEvent evt)
+        {
+            if (!promptOnUnlock || IsOpen)
+                return;
+
+            var hud = FindAnyObjectByType<SpeechBubbleView>();
+            var player = FindAnyObjectByType<PlayerController>();
+            if (hud == null || player == null)
+                return;
+
+            _unlockPrompt = ButtonPromptView.For(hud);
+            _unlockPrompt.Show(player.transform, promptToken);
+        }
+
         void Close(bool confirm)
         {
             if (!IsOpen)
                 return;
 
             IsOpen = false;
-            if (confirm && _hoveredSlot >= 0)
+            if (confirm && _hoveredSlot >= 0 && MaskManager.IsUnlocked(_slotMasks[_hoveredSlot]))
                 maskManager.Select(_slotMasks[_hoveredSlot]);
 
             GameTime.ResetTimeScale();
+            FadeFocus(0f);
             input.SetAttackEnabled(true);
             SetCursorCaptured(false);
             _overlay.AddToClassList(HiddenClass);
@@ -185,10 +235,13 @@ namespace APX.UI
                 MaskType mask = _slotMasks[i];
                 bool hasDefinition = maskManager.TryGetDefinition(mask, out MaskDefinition definition);
                 bool equipped = mask == MaskManager.CurrentMask;
+                bool locked = !MaskManager.IsUnlocked(mask);
 
-                _slotLabels[i].text = hasDefinition ? definition.DisplayName : mask.ToString();
+                _slotLabels[i].text = locked ? lockedTitle : hasDefinition ? definition.DisplayName : mask.ToString();
                 _slotLabels[i].EnableInClassList(EquippedClass, equipped);
+                _slotLabels[i].EnableInClassList(LockedClass, locked);
                 _ring.SetSegmentColor(i, hasDefinition ? definition.Color : Color.gray);
+                _ring.SetSegmentLocked(i, locked);
                 if (equipped)
                     _ring.EquippedIndex = i;
             }
@@ -233,7 +286,12 @@ namespace APX.UI
             for (int i = 0; i < SlotCount; i++)
                 _slotLabels[i].EnableInClassList(HoveredClass, i == slot);
 
-            if (slot >= 0)
+            if (slot >= 0 && !MaskManager.IsUnlocked(_slotMasks[slot]))
+            {
+                _title.text = lockedTitle;
+                _description.text = lockedDescription;
+            }
+            else if (slot >= 0)
             {
                 MaskType mask = _slotMasks[slot];
                 bool hasDefinition = maskManager.TryGetDefinition(mask, out MaskDefinition definition);
@@ -252,6 +310,27 @@ namespace APX.UI
         }
 
         void UpdateCursorVisual() => _cursor.style.translate = new Translate(_cursorOffset.x, _cursorOffset.y);
+
+        void FadeFocus(float target)
+        {
+            _focusTween?.Kill();
+            if (!isActiveAndEnabled || focusFadeDuration <= 0f)
+            {
+                SetFocus(target);
+                return;
+            }
+
+            _focusTween = DOTween.To(() => _focus, SetFocus, target, focusFadeDuration)
+                .SetEase(Ease.OutQuad)
+                .SetUpdate(true)
+                .SetLink(gameObject);
+        }
+
+        void SetFocus(float value)
+        {
+            _focus = value;
+            Shader.SetGlobalFloat(MenuFocusId, value);
+        }
 
         void OnMenuGeometryChanged(GeometryChangedEvent evt)
         {

@@ -8,10 +8,14 @@ namespace APX.Player
         public readonly PlayerLife Player;
         public readonly Vector2 Position;
 
-        public PlayerDiedEvent(PlayerLife player, Vector2 position)
+        /// <summary>What dealt the killing hit (an enemy, a hazard tilemap...); null when unknown, e.g. a fall.</summary>
+        public readonly GameObject Killer;
+
+        public PlayerDiedEvent(PlayerLife player, Vector2 position, GameObject killer = null)
         {
             Player = player;
             Position = position;
+            Killer = killer;
         }
     }
 

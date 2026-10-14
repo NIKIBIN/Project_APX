@@ -5,15 +5,24 @@ using UnityEngine.Events;
 
 namespace APX.Level
 {
-    /// <summary>Puzzle switch toggled by the player's attack. Wire its events to gates, platforms, etc.</summary>
+    /// <summary>
+    /// Puzzle switch toggled by the player's attack. Wire its events to gates, platforms, etc.
+    /// The indicator shows the state by brightness (an unlit stone when off, a lit lamp when on), never by hue
+    /// alone: the world is seen through a red-green colour blindness filter until "Differentiate" is worn.
+    /// </summary>
     public sealed class HitSwitch : MonoBehaviour, IDamageable, IResettable
     {
         [SerializeField] bool startsOn;
         [Tooltip("Once switched on, further hits are ignored.")]
         [SerializeField] bool oneShot = true;
         [SerializeField] SpriteRenderer indicator;
-        [SerializeField] Color offColor = new(0.85f, 0.3f, 0.3f);
-        [SerializeField] Color onColor = new(0.35f, 0.9f, 0.45f);
+        [Tooltip("Keep off and on far apart in brightness: hue differences vanish under the colour blindness filter.")]
+        [SerializeField] Color offColor = new(0.45f, 0.47f, 0.55f);
+        [SerializeField] Color onColor = new(0.92f, 0.97f, 1f);
+        [Tooltip("Indicator size when on, relative to its size when off (a second cue besides brightness).")]
+        [SerializeField, Min(0.1f)] float onScale = 1.25f;
+
+        Vector3 _indicatorOffScale;
         [SerializeField] UnityEvent onSwitchedOn = new();
         [SerializeField] UnityEvent onSwitchedOff = new();
 
@@ -25,7 +34,12 @@ namespace APX.Level
 
         public UnityEvent OnSwitchedOff => onSwitchedOff;
 
-        void Awake() => SetState(startsOn, notify: false);
+        void Awake()
+        {
+            if (indicator != null)
+                _indicatorOffScale = indicator.transform.localScale;
+            SetState(startsOn, notify: false);
+        }
 
         public bool TryReceiveDamage(in DamageInfo damage)
         {
@@ -55,6 +69,7 @@ namespace APX.Level
                 Color color = on ? onColor : offColor;
                 color.a = indicator.color.a; // Alpha belongs to mask visibility.
                 indicator.color = color;
+                indicator.transform.localScale = on ? _indicatorOffScale * onScale : _indicatorOffScale;
             }
 
             if (!notify)

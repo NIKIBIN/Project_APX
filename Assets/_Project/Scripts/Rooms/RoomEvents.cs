@@ -22,4 +22,12 @@ namespace APX.Rooms
 
         public RoomRestartedEvent(Room room) => Room = room;
     }
+
+    /// <summary>Raised after a restart once the respawn transition has opened and the room is fully on screen.</summary>
+    public readonly struct RoomRevealedEvent : IEvent
+    {
+        public readonly Room Room;
+
+        public RoomRevealedEvent(Room room) => Room = room;
+    }
 }

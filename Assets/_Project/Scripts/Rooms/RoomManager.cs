@@ -7,7 +7,9 @@ namespace APX.Rooms
 {
     /// <summary>
     /// Tracks the room the player is in, switches room when the player crosses an edge of the current
-    /// one, and restarts the current room when the player dies (one-hit kill).
+    /// one, and restarts the current room when the player dies (one-hit kill). The first death in a room plays
+    /// out in full; retries of the same room use the quick death and transition. A jump up through a room's top
+    /// edge gets a boost, so it clears the floor of the room above.
     /// </summary>
     [DefaultExecutionOrder(-50)]
     [DisallowMultipleComponent]
@@ -21,10 +23,17 @@ namespace APX.Rooms
         [SerializeField] MonoBehaviour respawnTransition;
         [Tooltip("Reset rooms when entering and leaving them, so every visit starts fresh.")]
         [SerializeField] bool resetRoomsOnTransition = true;
+        [Tooltip("Retries of the same room use the quick death and transition; the first death in a room plays in full.")]
+        [SerializeField] bool quickRetries = true;
+        [Tooltip("World units the player keeps rising after jumping up into the room above, so the jump clears the " +
+                 "floor beside a ceiling opening. 0 = no boost.")]
+        [SerializeField, Min(0f)] float upwardEntryBoost = 2.5f;
 
         Vector2 _entryPoint;
         Coroutine _restartRoutine;
         IRespawnTransition _transition;
+        PlayerController _controller;
+        bool _hasDiedInRoom;
 
         public static Room CurrentRoom { get; private set; }
 
@@ -34,6 +43,8 @@ namespace APX.Rooms
         {
             if (player == null)
                 player = FindAnyObjectByType<PlayerLife>();
+            if (player != null)
+                _controller = player.GetComponent<PlayerController>();
 
             _transition = respawnTransition as IRespawnTransition ?? FindTransition();
         }
@@ -105,8 +116,14 @@ namespace APX.Rooms
             CurrentRoom = next;
             next.IsCurrent = true;
             _entryPoint = entryPoint;
+            _hasDiedInRoom = false;
+            player.QuickDeath = false;
             if (resetRoomsOnTransition)
                 next.ResetRoom();
+
+            bool enteredFromBelow = previous != null && entryPoint.y >= previous.Bounds.yMax;
+            if (enteredFromBelow && _controller != null && _controller.Velocity.y > 0f)
+                _controller.BoostUpward(upwardEntryBoost);
 
             EventBus<RoomChangedEvent>.Raise(new RoomChangedEvent(previous, next));
         }
@@ -126,19 +143,23 @@ namespace APX.Rooms
                 yield return null;
             while (!player.IsReadyToRespawn);
 
+            bool quick = quickRetries && _hasDiedInRoom;
             if (_transition != null)
-                yield return _transition.Close(GetPlayerPosition);
+                yield return _transition.Close(GetPlayerPosition, quick);
 
             Room room = CurrentRoom;
             room.ResetRoom();
+            _hasDiedInRoom = true;
+            player.QuickDeath = quickRetries;
             player.Respawn(room.GetRespawnPoint(_entryPoint));
             EventBus<RoomRestartedEvent>.Raise(new RoomRestartedEvent(room));
 
             // The player already has control while the screen opens up around them.
             if (_transition != null)
-                yield return _transition.Open(GetPlayerPosition);
+                yield return _transition.Open(GetPlayerPosition, quick);
 
             _restartRoutine = null;
+            EventBus<RoomRevealedEvent>.Raise(new RoomRevealedEvent(room));
         }
 
         Vector2 GetPlayerPosition() => PlayerPosition;

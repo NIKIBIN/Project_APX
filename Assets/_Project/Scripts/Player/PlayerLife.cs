@@ -7,8 +7,9 @@ namespace APX.Player
 {
     /// <summary>
     /// One-hit-kill life model. A hit takes control away and knocks the player back; once they land, the
-    /// death pose plays for a while and then <see cref="IsReadyToRespawn"/> turns on. Respawning is
-    /// delegated to whoever listens to <see cref="PlayerDiedEvent"/> (the RoomManager restarts the room).
+    /// death pose plays for a while and then <see cref="IsReadyToRespawn"/> turns on. Pressing jump skips the
+    /// rest (after a short moment to see what happened), and <see cref="QuickDeath"/> shortens the pose for retries.
+    /// Respawning is delegated to whoever listens to <see cref="PlayerDiedEvent"/> (the RoomManager restarts the room).
     /// </summary>
     [RequireComponent(typeof(PlayerController))]
     public sealed class PlayerLife : MonoBehaviour, IDamageable
@@ -33,16 +34,24 @@ namespace APX.Player
         [Header("Death")]
         [Tooltip("Seconds the death animation plays after landing before the room restarts.")]
         [SerializeField, Min(0f)] float deathAnimationTime = 1.2f;
+        [Tooltip("Death animation seconds while QuickDeath is on (e.g. retrying the same room).")]
+        [SerializeField, Min(0f)] float quickDeathAnimationTime = 0.2f;
         [Tooltip("Seconds before the room restarts after falling out of the level.")]
         [SerializeField, Min(0f)] float outOfLevelTime = 0.3f;
+        [Tooltip("Real seconds after the hit before the jump button can skip the rest of the death.")]
+        [SerializeField, Min(0f)] float skipDelay = 0.25f;
 
         PlayerController _controller;
         PlayerAttack _attack;
         Rigidbody2D _body;
         DeathPhase _phase;
         float _phaseTimer;
+        float _diedAt;
 
         public bool IsDead => _phase != DeathPhase.Alive;
+
+        /// <summary>Plays the short death animation, e.g. for retries of the same room. Set by the RoomManager.</summary>
+        public bool QuickDeath { get; set; }
 
         /// <summary>True once the death has played out and the room can restart.</summary>
         public bool IsReadyToRespawn { get; private set; }
@@ -64,6 +73,18 @@ namespace APX.Player
             _body = GetComponent<Rigidbody2D>();
         }
 
+        void OnEnable()
+        {
+            if (_controller.Input != null)
+                _controller.Input.JumpPressed += OnJumpPressed;
+        }
+
+        void OnDisable()
+        {
+            if (_controller.Input != null)
+                _controller.Input.JumpPressed -= OnJumpPressed;
+        }
+
         void Update()
         {
             if (!IsDead || IsReadyToRespawn)
@@ -78,7 +99,7 @@ namespace APX.Player
                         EnterPhase(DeathPhase.Down);
                     break;
                 case DeathPhase.Down:
-                    IsReadyToRespawn = _phaseTimer >= deathAnimationTime;
+                    IsReadyToRespawn = _phaseTimer >= (QuickDeath ? quickDeathAnimationTime : deathAnimationTime);
                     break;
                 case DeathPhase.OutOfLevel:
                     IsReadyToRespawn = _phaseTimer >= outOfLevelTime;
@@ -91,12 +112,13 @@ namespace APX.Player
             if (IsDead || damage.SourceTeam == Team.Player)
                 return false;
 
-            Kill(damage.Point);
+            Kill(damage.Point, damage.Source);
             return true;
         }
 
         /// <summary>Kills the player, knocking them away from <paramref name="hitPoint"/>.</summary>
-        public void Kill(Vector2 hitPoint)
+        /// <param name="killer">What dealt the hit, if known (e.g. so a hidden killer can be shown).</param>
+        public void Kill(Vector2 hitPoint, GameObject killer = null)
         {
             if (IsDead)
                 return;
@@ -106,7 +128,7 @@ namespace APX.Player
             float direction = Mathf.Abs(offset) > 0.1f ? Mathf.Sign(offset) : -_controller.FacingDirection;
             _controller.FaceTowards(transform.position.x - direction);
 
-            BeginDeath(DeathPhase.KnockedBack);
+            BeginDeath(DeathPhase.KnockedBack, killer);
             _controller.Launch(new Vector2(direction * knockback.x, knockback.y));
         }
 
@@ -136,14 +158,22 @@ namespace APX.Player
             EventBus<PlayerRespawnedEvent>.Raise(new PlayerRespawnedEvent(this, position));
         }
 
-        void BeginDeath(DeathPhase phase)
+        // A fresh press only: a jump held while dying doesn't count.
+        void OnJumpPressed()
+        {
+            if (IsDead && !IsReadyToRespawn && Time.unscaledTime - _diedAt >= skipDelay)
+                IsReadyToRespawn = true;
+        }
+
+        void BeginDeath(DeathPhase phase, GameObject killer = null)
         {
             _phase = phase;
             _phaseTimer = 0f;
+            _diedAt = Time.unscaledTime;
             IsReadyToRespawn = false;
             SetControllable(false);
             Died?.Invoke();
-            EventBus<PlayerDiedEvent>.Raise(new PlayerDiedEvent(this, transform.position));
+            EventBus<PlayerDiedEvent>.Raise(new PlayerDiedEvent(this, transform.position, killer));
         }
 
         void EnterPhase(DeathPhase phase)

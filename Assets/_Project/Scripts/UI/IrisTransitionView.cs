@@ -9,7 +9,8 @@ namespace APX.UI
 {
     /// <summary>
     /// Respawn transition: a black iris closes in on the dead player, then reopens a little around the
-    /// respawned player (following them) before opening completely. Runs on unscaled time.
+    /// respawned player (following them) before opening completely. The quick version (retries) closes faster
+    /// and opens straight to the whole room. Runs on unscaled time.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public sealed class IrisTransitionView : MonoBehaviour, IRespawnTransition
@@ -33,6 +34,13 @@ namespace APX.UI
         [SerializeField, Min(0f)] float fullOpenDuration = 0.6f;
         [SerializeField] Ease fullOpenEase = Ease.InQuad;
 
+        [Header("Quick (retries)")]
+        [SerializeField, Min(0f)] float quickCloseDuration = 0.2f;
+        [SerializeField, Min(0f)] float quickBlackDuration = 0.05f;
+        [Tooltip("Opens straight to the whole room, without the small opening around the player.")]
+        [SerializeField, Min(0f)] float quickOpenDuration = 0.3f;
+        [SerializeField] Ease quickOpenEase = Ease.OutQuad;
+
         [Tooltip("Keeps the iris centre this far inside the screen edges (in panel pixels), e.g. after a fall off-screen.")]
         [SerializeField, Min(0f)] float screenMargin = 80f;
 
@@ -49,21 +57,30 @@ namespace APX.UI
 
         void OnDisable() => _iris?.SetHole(Vector2.zero, float.PositiveInfinity);
 
-        public IEnumerator Close(Func<Vector2> worldFocus)
+        public IEnumerator Close(Func<Vector2> worldFocus, bool quick = false)
         {
             if (_iris == null)
                 yield break;
 
             // Starts from wherever the iris is, in case a new death interrupted the last opening.
             float from = Mathf.Min(_iris.Radius, _iris.GetOpenRadius(ToLocal(worldFocus())));
-            yield return Animate(worldFocus, closeDuration, closeEase, (t, center) => Mathf.LerpUnclamped(from, 0f, t));
-            yield return Animate(worldFocus, blackDuration, Ease.Linear, (t, center) => 0f);
+            yield return Animate(worldFocus, quick ? quickCloseDuration : closeDuration, closeEase,
+                (t, center) => Mathf.LerpUnclamped(from, 0f, t));
+            yield return Animate(worldFocus, quick ? quickBlackDuration : blackDuration, Ease.Linear, (t, center) => 0f);
         }
 
-        public IEnumerator Open(Func<Vector2> worldFocus)
+        public IEnumerator Open(Func<Vector2> worldFocus, bool quick = false)
         {
             if (_iris == null)
                 yield break;
+
+            if (quick)
+            {
+                yield return Animate(worldFocus, quickOpenDuration, quickOpenEase,
+                    (t, center) => Mathf.LerpUnclamped(0f, _iris.GetOpenRadius(center), t));
+                _iris.SetHole(Vector2.zero, float.PositiveInfinity);
+                yield break;
+            }
 
             yield return Animate(worldFocus, peekOpenDuration, peekOpenEase,
                 (t, center) => Mathf.LerpUnclamped(0f, GetPeekRadius(worldFocus()), t));
